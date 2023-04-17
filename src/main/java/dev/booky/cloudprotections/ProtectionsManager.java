@@ -2,11 +2,16 @@ package dev.booky.cloudprotections;
 // Created by booky10 in CloudProtections (01:58 01.04.23)
 
 import dev.booky.cloudcore.config.ConfigLoader;
+import dev.booky.cloudprotections.config.BlockBBoxSerializer;
+import dev.booky.cloudprotections.config.ProtectionRegionSerializer;
+import dev.booky.cloudprotections.util.BlockBBox;
+import dev.booky.cloudprotections.util.ProtectionRegion;
 import dev.booky.cloudprotections.util.ProtectionsConfig;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.plugin.Plugin;
+import org.spongepowered.configurate.serialize.TypeSerializerCollection;
 
 import java.nio.file.Path;
 import java.util.function.Consumer;
@@ -34,6 +39,10 @@ public final class ProtectionsManager {
             .append(Component.text("] ", NamedTextColor.GRAY))
             .build().compact();
 
+    private static final Consumer<TypeSerializerCollection.Builder> CONFIG_SERIALIZERS = builder -> builder
+            .register(BlockBBox.class, BlockBBoxSerializer.INSTANCE)
+            .register(ProtectionRegion.class, ProtectionRegionSerializer.INSTANCE);
+
     private final Plugin plugin;
 
     private final Path configPath;
@@ -45,11 +54,11 @@ public final class ProtectionsManager {
     }
 
     public void reloadConfig() {
-        this.config = ConfigLoader.loadObject(this.configPath, ProtectionsConfig.class);
+        this.config = ConfigLoader.loadObject(this.configPath, ProtectionsConfig.class, CONFIG_SERIALIZERS);
     }
 
     public void saveConfig() {
-        ConfigLoader.saveObject(this.configPath, this.config);
+        ConfigLoader.saveObject(this.configPath, this.config, CONFIG_SERIALIZERS);
     }
 
     public synchronized void updateConfig(Consumer<ProtectionsConfig> consumer) {
