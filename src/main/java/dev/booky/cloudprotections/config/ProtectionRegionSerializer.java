@@ -1,7 +1,7 @@
 package dev.booky.cloudprotections.config;
 // Created by booky10 in CraftAttack (21:22 13.11.22)
 
-import dev.booky.cloudprotections.util.BlockBBox;
+import dev.booky.cloudcore.util.BlockBBox;
 import dev.booky.cloudprotections.util.ProtectionFlag;
 import dev.booky.cloudprotections.util.ProtectionRegion;
 import org.checkerframework.checker.nullness.qual.Nullable;

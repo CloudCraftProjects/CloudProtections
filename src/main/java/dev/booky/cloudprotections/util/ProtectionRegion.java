@@ -1,6 +1,8 @@
 package dev.booky.cloudprotections.util;
 // Created by booky10 in CraftAttack (21:22 13.11.22)
 
+import dev.booky.cloudcore.util.BlockBBox;
+
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
