@@ -65,7 +65,7 @@ tasks {
     }
 
     shadowJar {
-        relocate("org.bstats", "dev.booky.cloudcore.bstats")
+        relocate("org.bstats", "dev.booky.cloudprotections.bstats")
     }
 
     assemble {
