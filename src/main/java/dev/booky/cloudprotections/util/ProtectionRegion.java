@@ -11,18 +11,20 @@ import java.util.Set;
 
 public final class ProtectionRegion {
 
+    private final String id;
     private final BlockBBox box;
     private final Set<ProtectionFlag> flags;
 
-    public ProtectionRegion(BlockBBox box) {
-        this(box, EnumSet.allOf(ProtectionFlag.class));
+    public ProtectionRegion(String id, BlockBBox box) {
+        this(id, box, EnumSet.allOf(ProtectionFlag.class));
     }
 
-    public ProtectionRegion(BlockBBox box, ProtectionFlag... flags) {
-        this(box, EnumSet.copyOf(List.of(flags)));
+    public ProtectionRegion(String id, BlockBBox box, ProtectionFlag... flags) {
+        this(id, box, EnumSet.copyOf(List.of(flags)));
     }
 
-    public ProtectionRegion(BlockBBox box, Set<ProtectionFlag> flags) {
+    public ProtectionRegion(String id, BlockBBox box, Set<ProtectionFlag> flags) {
+        this.id = id;
         this.box = box.clone();
         this.flags = EnumSet.copyOf(flags);
     }
@@ -41,6 +43,10 @@ public final class ProtectionRegion {
 
     public final boolean hasFlag(ProtectionFlag flag) {
         return this.flags.contains(flag);
+    }
+
+    public String getId() {
+        return this.id;
     }
 
     public final BlockBBox getBox() {
@@ -65,6 +71,6 @@ public final class ProtectionRegion {
 
     @Override
     public String toString() {
-        return "ProtectionRegion{box=" + this.box + ", flags=" + this.flags + '}';
+        return "ProtectionRegion{id='" + this.id + '\'' + ", box=" + this.box + ", flags=" + this.flags + '}';
     }
 }

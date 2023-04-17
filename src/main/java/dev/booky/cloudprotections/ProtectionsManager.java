@@ -18,6 +18,8 @@ import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.serialize.TypeSerializerCollection;
 
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public final class ProtectionsManager {
@@ -46,6 +48,7 @@ public final class ProtectionsManager {
     private static final Consumer<TypeSerializerCollection.Builder> CONFIG_SERIALIZERS = builder -> builder
             .register(ProtectionRegion.class, ProtectionRegionSerializer.INSTANCE);
 
+    private final Map<String, ProtectionRegion> regions = new HashMap<>();
     private final Plugin plugin;
 
     private final Path configPath;
@@ -58,6 +61,7 @@ public final class ProtectionsManager {
 
     public void reloadConfig() {
         this.config = ConfigLoader.loadObject(this.configPath, ProtectionsConfig.class, CONFIG_SERIALIZERS);
+        this.refreshRegionMap();
     }
 
     public void saveConfig() {
@@ -66,7 +70,17 @@ public final class ProtectionsManager {
 
     public synchronized void updateConfig(Consumer<ProtectionsConfig> consumer) {
         consumer.accept(this.config);
+        this.refreshRegionMap();
         this.saveConfig();
+    }
+
+    private void refreshRegionMap() {
+        synchronized (this.regions) {
+            this.regions.clear();
+            for (ProtectionRegion region : this.config.getRegions()) {
+                this.regions.put(region.getId(), region);
+            }
+        }
     }
 
     public final boolean isProtected(Block block, ProtectionFlag flag, @Nullable HumanEntity entity) {
@@ -85,6 +99,10 @@ public final class ProtectionsManager {
             }
         }
         return false;
+    }
+
+    public @Nullable ProtectionRegion getRegion(String id) {
+        return this.regions.get(id);
     }
 
     public Component getPrefix() {

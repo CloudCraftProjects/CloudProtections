@@ -4,6 +4,7 @@ package dev.booky.cloudprotections.config;
 import dev.booky.cloudcore.util.BlockBBox;
 import dev.booky.cloudprotections.util.ProtectionFlag;
 import dev.booky.cloudprotections.util.ProtectionRegion;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.serialize.SerializationException;
@@ -29,6 +30,7 @@ public class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegi
         }
 
         BlockBBox box = Objects.requireNonNull(node.get(BlockBBox.class));
+        String id = node.node("id").getString(RandomStringUtils.randomAlphanumeric(8));
 
         ConfigurationNode flagsNode = node.node("flags");
         Set<ProtectionFlag> flags;
@@ -44,7 +46,7 @@ public class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegi
             }
         }
 
-        return new ProtectionRegion(box, flags);
+        return new ProtectionRegion(id, box, flags);
     }
 
     @Override
@@ -55,6 +57,7 @@ public class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegi
         }
 
         node.set(obj.getBox());
+        node.node("id").set(obj.getId());
 
         // why the fuck does this EnumSerializer not work when serializing this?
         // this thing has worked in every other project I have used this in (more than 1), so why not here?
