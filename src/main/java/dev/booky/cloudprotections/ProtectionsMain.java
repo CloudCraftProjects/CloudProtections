@@ -2,6 +2,7 @@ package dev.booky.cloudprotections;
 // Created by booky10 in CloudCore (10:35 14.03.23)
 
 import dev.booky.cloudcore.util.TranslationLoader;
+import dev.booky.cloudprotections.listener.ProtectionListener;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.ServicePriority;
@@ -26,6 +27,8 @@ public class ProtectionsMain extends JavaPlugin {
         this.manager.reloadConfig();
 
         Bukkit.getServicesManager().register(ProtectionsManager.class, this.manager, this, ServicePriority.Normal);
+
+        Bukkit.getPluginManager().registerEvents(new ProtectionListener(this.manager), this);
     }
 
     @Override

@@ -3,12 +3,18 @@ package dev.booky.cloudprotections;
 
 import dev.booky.cloudcore.config.ConfigLoader;
 import dev.booky.cloudprotections.config.ProtectionRegionSerializer;
+import dev.booky.cloudprotections.util.ProtectionFlag;
 import dev.booky.cloudprotections.util.ProtectionRegion;
 import dev.booky.cloudprotections.util.ProtectionsConfig;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.serialize.TypeSerializerCollection;
 
 import java.nio.file.Path;
@@ -61,6 +67,24 @@ public final class ProtectionsManager {
     public synchronized void updateConfig(Consumer<ProtectionsConfig> consumer) {
         consumer.accept(this.config);
         this.saveConfig();
+    }
+
+    public final boolean isProtected(Block block, ProtectionFlag flag, @Nullable HumanEntity entity) {
+        Location location = new Location(block.getWorld(), block.getX() + 0.5d, block.getY() + 0.5d, block.getZ() + 0.5d);
+        return this.isProtected(location, flag, entity);
+    }
+
+    public final boolean isProtected(Location location, ProtectionFlag flag, @Nullable HumanEntity entity) {
+        if (entity != null && entity.getGameMode() == GameMode.CREATIVE) {
+            return false;
+        }
+
+        for (ProtectionRegion region : this.getConfig().getRegions()) {
+            if (region.check(location, flag)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Component getPrefix() {
