@@ -190,14 +190,16 @@ public final class ProtectionsCommand {
         flags.removeIf(region::hasFlag);
 
         if (flags.isEmpty()) {
-            throw fail(Component.translatable("protections.command.flags.add.nothing-changed"));
+            throw fail(Component.translatable("protections.command.flags.add.nothing-changed",
+                    Component.text(region.getId(), NamedTextColor.WHITE)));
         }
 
         ComponentBuilder<?, ?> msg = Component.translatable()
                 .key(flags.size() == 1
                         ? "protections.command.flags.add.success.singular"
                         : "protections.command.flags.add.success.plural")
-                .args(Component.text(flags.size(), NamedTextColor.WHITE));
+                .args(Component.text(flags.size(), NamedTextColor.WHITE),
+                        Component.text(region.getId(), NamedTextColor.WHITE));
 
         for (ProtectionFlag flag : flags) {
             region.addFlag(flag);
@@ -219,14 +221,16 @@ public final class ProtectionsCommand {
         flags.removeIf(Predicate.not(region::hasFlag));
 
         if (flags.isEmpty()) {
-            throw fail(Component.translatable("protections.command.flags.remove.nothing-changed"));
+            throw fail(Component.translatable("protections.command.flags.remove.nothing-changed",
+                    Component.text(region.getId(), NamedTextColor.WHITE)));
         }
 
         ComponentBuilder<?, ?> msg = Component.translatable()
                 .key(flags.size() == 1
                         ? "protections.command.flags.remove.success.singular"
                         : "protections.command.flags.remove.success.plural")
-                .args(Component.text(flags.size(), NamedTextColor.WHITE));
+                .args(Component.text(flags.size(), NamedTextColor.WHITE),
+                        Component.text(region.getId(), NamedTextColor.WHITE));
 
         for (ProtectionFlag flag : flags) {
             region.removeFlag(flag);
@@ -246,14 +250,16 @@ public final class ProtectionsCommand {
         ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
         Set<ProtectionFlag> flags = Set.copyOf(region.getFlags());
         if (flags.isEmpty()) {
-            throw this.fail(Component.translatable("protections.command.flags.list.none"));
+            throw this.fail(Component.translatable("protections.command.flags.list.none",
+                    Component.text(region.getId(), NamedTextColor.WHITE)));
         }
 
         ComponentBuilder<?, ?> msg = Component.translatable()
                 .key(flags.size() == 1
                         ? "protections.command.flags.list.info.singular"
                         : "protections.command.flags.list.info.plural")
-                .args(Component.text(flags.size(), NamedTextColor.WHITE));
+                .args(Component.text(flags.size(), NamedTextColor.WHITE),
+                        Component.text(region.getId(), NamedTextColor.WHITE));
 
         for (ProtectionFlag flag : flags) {
             if (msg.children().isEmpty()) {
