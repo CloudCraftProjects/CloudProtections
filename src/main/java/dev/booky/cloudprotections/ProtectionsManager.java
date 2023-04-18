@@ -83,18 +83,17 @@ public final class ProtectionsManager {
         }
     }
 
-    public final boolean isProtected(Block block, ProtectionFlag flag, @Nullable HumanEntity entity) {
-        Location location = new Location(block.getWorld(), block.getX() + 0.5d, block.getY() + 0.5d, block.getZ() + 0.5d);
-        return this.isProtected(location, flag, entity);
+    public final boolean isProtected(Location location, ProtectionFlag flag, @Nullable HumanEntity entity) {
+        return this.isProtected(location.getBlock(), flag, entity);
     }
 
-    public final boolean isProtected(Location location, ProtectionFlag flag, @Nullable HumanEntity entity) {
+    public final boolean isProtected(Block block, ProtectionFlag flag, @Nullable HumanEntity entity) {
         if (entity != null && entity.getGameMode() == GameMode.CREATIVE) {
             return false;
         }
 
         for (ProtectionRegion region : this.getConfig().getRegions()) {
-            if (region.check(location, flag)) {
+            if (region.check(block, flag)) {
                 return true;
             }
         }

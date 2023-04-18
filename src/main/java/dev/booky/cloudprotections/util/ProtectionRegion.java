@@ -3,6 +3,7 @@ package dev.booky.cloudprotections.util;
 
 import dev.booky.cloudcore.util.BlockBBox;
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -29,8 +30,8 @@ public final class ProtectionRegion {
         this.flags = EnumSet.copyOf(flags);
     }
 
-    public final boolean check(Location location, ProtectionFlag flag) {
-        return this.flags.contains(flag) && this.box.containsLoc(location);
+    public final boolean check(Block block, ProtectionFlag flag) {
+        return this.flags.contains(flag) && this.box.contains(block);
     }
 
     public final boolean addFlag(ProtectionFlag flag) {
