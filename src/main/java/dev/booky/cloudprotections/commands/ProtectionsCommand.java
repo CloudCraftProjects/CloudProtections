@@ -33,6 +33,7 @@ import org.bukkit.util.Vector;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -74,8 +75,10 @@ public final class ProtectionsCommand {
     }
 
     private void register() {
-        Supplier<ListArgument<ProtectionFlag>> flagsListArg = () -> new ListArgumentBuilder<ProtectionFlag>(
-                "flags").withList(ProtectionFlag.values()).withStringMapper().buildGreedy();
+        Supplier<ListArgument<ProtectionFlag>> flagsListArg = () -> new ListArgumentBuilder<ProtectionFlag>("flags")
+                .withList(ProtectionFlag.values())
+                .withMapper(flag -> flag.name().toLowerCase(Locale.ROOT))
+                .buildGreedy();
 
         Supplier<Argument<ProtectionRegion>> regionArgument = () -> new CustomArgument<>(
                 new StringArgument("region"), info -> {
