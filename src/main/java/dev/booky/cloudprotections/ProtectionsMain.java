@@ -25,7 +25,7 @@ public class ProtectionsMain extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        this.manager.reloadConfig();
+        this.manager.reloadRegions();
 
         Bukkit.getServicesManager().register(ProtectionsManager.class, this.manager, this, ServicePriority.Normal);
 
@@ -37,7 +37,7 @@ public class ProtectionsMain extends JavaPlugin {
     @Override
     public void onDisable() {
         if (this.manager != null) {
-            this.manager.saveConfig();
+            this.manager.saveRegions();
         }
 
         if (this.i18n != null) {

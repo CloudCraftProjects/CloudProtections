@@ -5,7 +5,7 @@ import dev.booky.cloudcore.config.ConfigLoader;
 import dev.booky.cloudprotections.config.ProtectionRegionSerializer;
 import dev.booky.cloudprotections.util.ProtectionFlag;
 import dev.booky.cloudprotections.util.ProtectionRegion;
-import dev.booky.cloudprotections.util.ProtectionsConfig;
+import io.leangen.geantyref.TypeToken;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -18,9 +18,15 @@ import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.serialize.TypeSerializerCollection;
 
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class ProtectionsManager {
 
@@ -47,39 +53,33 @@ public final class ProtectionsManager {
 
     private static final Consumer<TypeSerializerCollection.Builder> CONFIG_SERIALIZERS = builder -> builder
             .register(ProtectionRegion.class, ProtectionRegionSerializer.INSTANCE);
+    private static final TypeToken<List<ProtectionRegion>> REGIONS_TOKEN = new TypeToken<>() {};
 
-    private final Map<String, ProtectionRegion> regions = new HashMap<>();
     private final Plugin plugin;
-
-    private final Path configPath;
-    private ProtectionsConfig config;
+    private final Path regionsPath;
+    private Map<String, ProtectionRegion> regions = Map.of();
 
     public ProtectionsManager(Plugin plugin) {
         this.plugin = plugin;
-        this.configPath = plugin.getDataFolder().toPath().resolve("config.yml");
+        this.regionsPath = plugin.getDataFolder().toPath().resolve("regions.yml");
     }
 
-    public void reloadConfig() {
-        this.config = ConfigLoader.loadObject(this.configPath, ProtectionsConfig.class, CONFIG_SERIALIZERS);
-        this.refreshRegionMap();
+    public void reloadRegions() {
+        this.regions = ConfigLoader.loadObject(this.regionsPath, REGIONS_TOKEN, List::of, CONFIG_SERIALIZERS)
+                .stream().collect(Collectors.toUnmodifiableMap(ProtectionRegion::getId, Function.identity()));
     }
 
-    public void saveConfig() {
-        ConfigLoader.saveObject(this.configPath, this.config, CONFIG_SERIALIZERS);
+    public void saveRegions() {
+        ConfigLoader.saveObject(this.regionsPath, REGIONS_TOKEN, List.copyOf(this.regions.values()), CONFIG_SERIALIZERS);
     }
 
-    public synchronized void updateConfig(Consumer<ProtectionsConfig> consumer) {
-        consumer.accept(this.config);
-        this.refreshRegionMap();
-        this.saveConfig();
-    }
+    public synchronized void updateRegions(Consumer<Map<String, ProtectionRegion>> consumer) {
+        Map<String, ProtectionRegion> mutRegions = new HashMap<>(this.regions);
+        consumer.accept(mutRegions);
 
-    private void refreshRegionMap() {
-        synchronized (this.regions) {
-            this.regions.clear();
-            for (ProtectionRegion region : this.config.getRegions()) {
-                this.regions.put(region.getId(), region);
-            }
+        if (!this.regions.equals(mutRegions)) {
+            this.regions = mutRegions;
+            this.saveRegions();
         }
     }
 
@@ -92,7 +92,7 @@ public final class ProtectionsManager {
             return false;
         }
 
-        for (ProtectionRegion region : this.getConfig().getRegions()) {
+        for (ProtectionRegion region : this.getRegions()) {
             if (region.check(block, flag)) {
                 return true;
             }
@@ -104,12 +104,16 @@ public final class ProtectionsManager {
         return this.regions.get(id);
     }
 
-    public Component getPrefix() {
-        return PREFIX;
+    public Set<String> getRegionIds() {
+        return Collections.unmodifiableSet(this.regions.keySet());
     }
 
-    public ProtectionsConfig getConfig() {
-        return this.config;
+    public Collection<ProtectionRegion> getRegions() {
+        return Collections.unmodifiableCollection(this.regions.values());
+    }
+
+    public Component getPrefix() {
+        return PREFIX;
     }
 
     public Plugin getPlugin() {

@@ -45,8 +45,8 @@ public final class ProtectionsCommand {
             // apparently this is not translatable :(
             CustomArgument.MessageBuilder errorMsg = new CustomArgument.MessageBuilder("Invalid region: ").appendArgInput().appendHere();
             throw new CustomArgument.CustomArgumentException(errorMsg);
-        }).replaceSuggestions(ArgumentSuggestions.stringsAsync(info -> CompletableFuture.supplyAsync(() ->
-                manager.getConfig().getRegions().stream().map(ProtectionRegion::getId).toArray(String[]::new))));
+        }).replaceSuggestions(ArgumentSuggestions.strings(info ->
+                manager.getRegionIds().toArray(String[]::new)));
 
         new CommandTree("cloudprotections")
                 .withPermission("cloudprotections.command")
