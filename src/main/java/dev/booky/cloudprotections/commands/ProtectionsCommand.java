@@ -22,6 +22,7 @@ import dev.jorel.commandapi.exceptions.WrapperCommandSyntaxException;
 import dev.jorel.commandapi.executors.CommandArguments;
 import dev.jorel.commandapi.wrappers.NativeProxyCommandSender;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ComponentBuilder;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
@@ -29,6 +30,7 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.Vector;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -115,7 +117,7 @@ public final class ProtectionsCommand {
     private void createRegion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
         String id = Objects.requireNonNull(args.getUnchecked("id"));
         if (this.manager.getRegion(id) != null) {
-            throw fail(Component.translatable("protections.command.create.already-exists", Component.text(id, NamedTextColor.WHITE)));
+            throw this.fail(Component.translatable("protections.command.create.already-exists", Component.text(id, NamedTextColor.WHITE)));
         }
 
         World dimension = args.getOrDefaultUnchecked("dimension", sender::getWorld);
@@ -126,12 +128,12 @@ public final class ProtectionsCommand {
         ProtectionRegion region = new ProtectionRegion(id, box, EnumSet.allOf(ProtectionFlag.class));
 
         this.manager.updateRegions(regions -> regions.putIfAbsent(id, region));
-        success(sender, Component.translatable("protections.command.create.success", Component.text(id, NamedTextColor.WHITE)));
+        this.success(sender, Component.translatable("protections.command.create.success", Component.text(id, NamedTextColor.WHITE)));
     }
 
     private void deleteRegion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
         ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
-        throw fail(Component.translatable("protections.command.delete.confirmation-required",
+        throw this.fail(Component.translatable("protections.command.delete.confirmation-required",
                 Component.text(region.getId(), NamedTextColor.WHITE),
                 Component.translatable("protections.command.delete.confirmation-button")
                         .clickEvent(ClickEvent.callback(clicker -> {
@@ -141,30 +143,53 @@ public final class ProtectionsCommand {
 
                             if (this.manager.getRegion(region.getId()) != region) {
                                 // can't throw exceptions here
-                                fail(sender, Component.translatable("protections.command.delete.invalid-region",
+                                this.fail(sender, Component.translatable("protections.command.delete.invalid-region",
                                         Component.text(region.getId(), NamedTextColor.WHITE)));
                                 return;
                             }
 
                             this.manager.updateRegions(regions -> regions.remove(region.getId(), region));
-                            success(sender, Component.translatable("protections.command.delete.success",
+                            this.success(sender, Component.translatable("protections.command.delete.success",
                                     Component.text(region.getId(), NamedTextColor.WHITE)));
                         }))));
     }
 
     private void listRegions(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        throw fail(Component.text("Unsupported"));
+        Collection<ProtectionRegion> regions = this.manager.getRegions();
+        if (regions.isEmpty()) {
+            throw this.fail(Component.translatable("protections.command.list.none"));
+        }
+
+        ComponentBuilder<?, ?> msg = Component.translatable()
+                .key("protections.command.list.header")
+                .args(Component.text(regions.size(), NamedTextColor.WHITE));
+
+        for (ProtectionRegion region : regions) {
+            BlockBBox box = region.getBox();
+            String minStr = box.getMinX() + ":" + box.getMinY() + ":" + box.getMinZ();
+            String maxStr = box.getMaxX() + ":" + box.getMaxY() + ":" + box.getMaxZ();
+
+            msg.appendNewline().appendSpace();
+            msg.append(Component.translatable("protections.command.list.entry",
+                    Component.text(region.getId(), NamedTextColor.WHITE),
+                    Component.text(minStr, NamedTextColor.WHITE),
+                    Component.text(maxStr, NamedTextColor.WHITE),
+                    Component.text(box.getWorld().key().asString(), NamedTextColor.WHITE),
+                    Component.text(region.getFlags().size(), NamedTextColor.WHITE)));
+        }
+
+        success(sender, msg.build());
     }
 
     private void addRegionFlag(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        throw fail(Component.text("Unsupported"));
+        throw this.fail(Component.text("Unsupported"));
     }
 
     private void removeRegionFlag(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        throw fail(Component.text("Unsupported"));
+        throw this.fail(Component.text("Unsupported"));
     }
 
     private void listRegionFlags(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        throw fail(Component.text("Unsupported"));
+        throw this.fail(Component.text("Unsupported"));
     }
 }
