@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -242,6 +243,27 @@ public final class ProtectionsCommand {
     }
 
     private void listRegionFlags(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        throw this.fail(Component.text("Unsupported"));
+        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        Set<ProtectionFlag> flags = Set.copyOf(region.getFlags());
+        if (flags.isEmpty()) {
+            throw this.fail(Component.translatable("protections.command.flags.list.none"));
+        }
+
+        ComponentBuilder<?, ?> msg = Component.translatable()
+                .key(flags.size() == 1
+                        ? "protections.command.flags.list.info.singular"
+                        : "protections.command.flags.list.info.plural")
+                .args(Component.text(flags.size(), NamedTextColor.WHITE));
+
+        for (ProtectionFlag flag : flags) {
+            if (msg.children().isEmpty()) {
+                msg.appendSpace();
+            } else {
+                msg.append(Component.text(", "));
+            }
+            msg.append(flag.getName().colorIfAbsent(NamedTextColor.WHITE));
+        }
+
+        success(sender, msg.build());
     }
 }
