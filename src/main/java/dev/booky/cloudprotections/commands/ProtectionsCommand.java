@@ -22,6 +22,7 @@ import dev.jorel.commandapi.exceptions.WrapperCommandSyntaxException;
 import dev.jorel.commandapi.executors.CommandArguments;
 import dev.jorel.commandapi.wrappers.NativeProxyCommandSender;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -48,6 +49,11 @@ public final class ProtectionsCommand {
 
     private WrapperCommandSyntaxException fail(Component message) {
         return CommandAPIBukkit.failWithAdventureComponent(this.manager.getPrefix()
+                .append(message.colorIfAbsent(NamedTextColor.RED)));
+    }
+
+    private void fail(CommandSender sender, Component message) {
+        sender.sendMessage(this.manager.getPrefix()
                 .append(message.colorIfAbsent(NamedTextColor.RED)));
     }
 
@@ -90,8 +96,7 @@ public final class ProtectionsCommand {
                                                         .executesNative(this::createRegion))))))
                 .then(new LiteralArgument("delete")
                         .then(regionArgument.get()
-                                .then(new StringArgument("confirm").setOptional(true)
-                                        .executesNative(this::deleteRegion))))
+                                .executesNative(this::deleteRegion)))
                 .then(new LiteralArgument("list")
                         .executesNative(this::listRegions))
                 .then(new LiteralArgument("flags")
@@ -125,7 +130,26 @@ public final class ProtectionsCommand {
     }
 
     private void deleteRegion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        throw fail(Component.text("Unsupported"));
+        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        throw fail(Component.translatable("protections.command.delete.confirmation-required",
+                Component.text(region.getId(), NamedTextColor.WHITE),
+                Component.translatable("protections.command.delete.confirmation-button")
+                        .clickEvent(ClickEvent.callback(clicker -> {
+                            if (clicker != sender.getCaller()) {
+                                return;
+                            }
+
+                            if (this.manager.getRegion(region.getId()) != region) {
+                                // can't throw exceptions here
+                                fail(sender, Component.translatable("protections.command.delete.invalid-region",
+                                        Component.text(region.getId(), NamedTextColor.WHITE)));
+                                return;
+                            }
+
+                            this.manager.updateRegions(regions -> regions.remove(region.getId(), region));
+                            success(sender, Component.translatable("protections.command.delete.success",
+                                    Component.text(region.getId(), NamedTextColor.WHITE)));
+                        }))));
     }
 
     private void listRegions(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
