@@ -32,6 +32,7 @@ import org.bukkit.util.Vector;
 
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -85,7 +86,7 @@ public final class ProtectionsCommand {
             CustomArgument.MessageBuilder errorMsg = new CustomArgument.MessageBuilder("Invalid region: ").appendArgInput().appendHere();
             throw new CustomArgument.CustomArgumentException(errorMsg);
         }).replaceSuggestions(ArgumentSuggestions.strings(info ->
-                manager.getRegionIds().toArray(String[]::new)));
+                this.manager.getRegionIds().toArray(String[]::new)));
 
         new CommandTree("cloudprotections")
                 .withPermission("cloudprotections.command")
@@ -182,7 +183,32 @@ public final class ProtectionsCommand {
     }
 
     private void addRegionFlag(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        throw this.fail(Component.text("Unsupported"));
+        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        List<ProtectionFlag> flags = Objects.requireNonNull(args.getUnchecked("flags"));
+        flags.removeIf(region::hasFlag);
+
+        if (flags.isEmpty()) {
+            throw fail(Component.translatable("protections.command.flags.add.nothing-changed"));
+        }
+
+        ComponentBuilder<?, ?> msg = Component.translatable()
+                .key(flags.size() == 1
+                        ? "protections.command.flags.add.success.singular"
+                        : "protections.command.flags.add.success.plural")
+                .args(Component.text(flags.size(), NamedTextColor.WHITE));
+
+        for (ProtectionFlag flag : flags) {
+            region.addFlag(flag);
+
+            if (msg.children().isEmpty()) {
+                msg.appendSpace();
+            } else {
+                msg.append(Component.text(", "));
+            }
+            msg.append(flag.getName().colorIfAbsent(NamedTextColor.WHITE));
+        }
+
+        success(sender, msg.build());
     }
 
     private void removeRegionFlag(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
