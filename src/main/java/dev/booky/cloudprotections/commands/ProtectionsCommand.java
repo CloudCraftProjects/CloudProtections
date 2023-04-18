@@ -23,13 +23,17 @@ import dev.jorel.commandapi.executors.CommandArguments;
 import dev.jorel.commandapi.wrappers.NativeProxyCommandSender;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentBuilder;
+import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.util.Vector;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
@@ -174,14 +178,22 @@ public final class ProtectionsCommand {
             BlockBBox box = region.getBox();
             String minStr = box.getMinX() + ":" + box.getMinY() + ":" + box.getMinZ();
             String maxStr = box.getMaxX() + ":" + box.getMaxY() + ":" + box.getMaxZ();
+            String centerStr = box.getBlockCenterX() + ":" + box.getBlockCenterY() + ":" + box.getBlockCenterZ();
 
             msg.appendNewline().appendSpace();
             msg.append(Component.translatable("protections.command.list.entry",
-                    Component.text(region.getId(), NamedTextColor.WHITE),
-                    Component.text(minStr, NamedTextColor.WHITE),
-                    Component.text(maxStr, NamedTextColor.WHITE),
-                    Component.text(box.getWorld().key().asString(), NamedTextColor.WHITE),
-                    Component.text(region.getFlags().size(), NamedTextColor.WHITE)));
+                            Component.text(region.getId(), NamedTextColor.WHITE),
+                            Component.text(minStr, NamedTextColor.WHITE),
+                            Component.text(maxStr, NamedTextColor.WHITE),
+                            Component.text(box.getWorld().key().asString(), NamedTextColor.WHITE),
+                            Component.text(region.getFlags().size(), NamedTextColor.WHITE))
+                    .hoverEvent(Component.translatable("protections.command.list.hover",
+                            Component.text(centerStr, NamedTextColor.WHITE)))
+                    .clickEvent(ClickEvent.callback(clicker -> {
+                        if (clicker == sender.getCaller() && clicker instanceof Entity entity) {
+                            entity.teleportAsync(box.getCenterLocation(), PlayerTeleportEvent.TeleportCause.COMMAND);
+                        }
+                    }, opts -> opts.uses(ClickCallback.UNLIMITED_USES).lifetime(Duration.ofMinutes(10)))));
         }
 
         success(sender, msg.build());
