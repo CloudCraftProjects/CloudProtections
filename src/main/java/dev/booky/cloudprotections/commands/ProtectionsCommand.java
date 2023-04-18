@@ -1,10 +1,12 @@
 package dev.booky.cloudprotections.commands;
 // Created by booky10 in CloudProtections (21:49 17.04.23)
 
+import dev.booky.cloudcore.util.BlockBBox;
 import dev.booky.cloudprotections.ProtectionsManager;
 import dev.booky.cloudprotections.util.ProtectionFlag;
 import dev.booky.cloudprotections.util.ProtectionRegion;
 import dev.jorel.commandapi.CommandAPI;
+import dev.jorel.commandapi.CommandAPIBukkit;
 import dev.jorel.commandapi.CommandTree;
 import dev.jorel.commandapi.arguments.Argument;
 import dev.jorel.commandapi.arguments.ArgumentSuggestions;
@@ -16,28 +18,57 @@ import dev.jorel.commandapi.arguments.LocationArgument;
 import dev.jorel.commandapi.arguments.LocationType;
 import dev.jorel.commandapi.arguments.StringArgument;
 import dev.jorel.commandapi.arguments.WorldArgument;
+import dev.jorel.commandapi.exceptions.WrapperCommandSyntaxException;
 import dev.jorel.commandapi.executors.CommandArguments;
+import dev.jorel.commandapi.wrappers.NativeProxyCommandSender;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.util.Vector;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.EnumSet;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 public final class ProtectionsCommand {
 
-    private ProtectionsCommand() {
+    private final ProtectionsManager manager;
+
+    private ProtectionsCommand(ProtectionsManager manager) {
+        this.manager = manager;
     }
 
-    public static void register(ProtectionsManager manager) {
+    public static void create(ProtectionsManager manager) {
+        ProtectionsCommand command = new ProtectionsCommand(manager);
+        command.unregister();
+        command.register();
+    }
+
+    private WrapperCommandSyntaxException fail(Component message) {
+        return CommandAPIBukkit.failWithAdventureComponent(this.manager.getPrefix()
+                .append(message.colorIfAbsent(NamedTextColor.RED)));
+    }
+
+    private void success(CommandSender sender, Component message) {
+        sender.sendMessage(this.manager.getPrefix()
+                .append(message.colorIfAbsent(NamedTextColor.YELLOW)));
+    }
+
+    private void unregister() {
         CommandAPI.unregister("cloudprotections");
         CommandAPI.unregister("cprotections");
         CommandAPI.unregister("cprots");
+    }
 
+    private void register() {
         Supplier<ListArgument<ProtectionFlag>> flagsListArg = () -> new ListArgumentBuilder<ProtectionFlag>(
                 "flags").withList(ProtectionFlag.values()).withStringMapper().buildGreedy();
 
         Supplier<Argument<ProtectionRegion>> regionArgument = () -> new CustomArgument<>(
                 new StringArgument("region"), info -> {
-            ProtectionRegion region = manager.getRegion(info.currentInput());
+            ProtectionRegion region = this.manager.getRegion(info.currentInput());
             if (region != null) {
                 return region;
             }
@@ -55,24 +86,61 @@ public final class ProtectionsCommand {
                         .then(new StringArgument("id")
                                 .then(new LocationArgument("corner1", LocationType.BLOCK_POSITION)
                                         .then(new LocationArgument("corner2", LocationType.BLOCK_POSITION)
-                                                .executes((CommandSender sender, CommandArguments args) -> { /**/ })
-                                                .then(new WorldArgument("dimension")
-                                                        .executes((CommandSender sender, CommandArguments args) -> { /**/ }))))))
+                                                .then(new WorldArgument("dimension").setOptional(true)
+                                                        .executesNative(this::createRegion))))))
                 .then(new LiteralArgument("delete")
                         .then(regionArgument.get()
-                                .executes((CommandSender sender, CommandArguments args) -> { /**/ })))
+                                .then(new StringArgument("confirm").setOptional(true)
+                                        .executesNative(this::deleteRegion))))
                 .then(new LiteralArgument("list")
-                        .executes((CommandSender sender, CommandArguments args) -> { /**/ }))
+                        .executesNative(this::listRegions))
                 .then(new LiteralArgument("flags")
                         .then(regionArgument.get()
                                 .then(new LiteralArgument("add")
                                         .then(flagsListArg.get()
-                                                .executes((CommandSender sender, CommandArguments args) -> { /**/ })))
+                                                .executesNative(this::addRegionFlag)))
                                 .then(new LiteralArgument("remove")
                                         .then(flagsListArg.get()
-                                                .executes((CommandSender sender, CommandArguments args) -> { /**/ })))
+                                                .executesNative(this::removeRegionFlag)))
                                 .then(new LiteralArgument("list")
-                                        .executes((CommandSender sender, CommandArguments args) -> { /**/ }))))
+                                        .executesNative(this::listRegionFlags))))
                 .register();
+    }
+
+    private void createRegion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        String id = Objects.requireNonNull(args.getUnchecked("id"));
+        if (this.manager.getRegion(id) != null) {
+            throw fail(Component.translatable("protections.command.create.already-exists", Component.text(id, NamedTextColor.WHITE)));
+        }
+
+        World dimension = args.getOrDefaultUnchecked("dimension", sender::getWorld);
+        Vector corner1 = Objects.requireNonNull(args.<Location>getUnchecked("corner1")).toVector();
+        Vector corner2 = Objects.requireNonNull(args.<Location>getUnchecked("corner2")).toVector();
+
+        BlockBBox box = new BlockBBox(dimension, corner1, corner2);
+        ProtectionRegion region = new ProtectionRegion(id, box, EnumSet.allOf(ProtectionFlag.class));
+
+        this.manager.updateRegions(regions -> regions.putIfAbsent(id, region));
+        success(sender, Component.translatable("protections.command.create.success", Component.text(id, NamedTextColor.WHITE)));
+    }
+
+    private void deleteRegion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        throw fail(Component.text("Unsupported"));
+    }
+
+    private void listRegions(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        throw fail(Component.text("Unsupported"));
+    }
+
+    private void addRegionFlag(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        throw fail(Component.text("Unsupported"));
+    }
+
+    private void removeRegionFlag(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        throw fail(Component.text("Unsupported"));
+    }
+
+    private void listRegionFlags(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        throw fail(Component.text("Unsupported"));
     }
 }

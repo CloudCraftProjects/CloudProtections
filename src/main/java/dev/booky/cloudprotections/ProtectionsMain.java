@@ -31,7 +31,7 @@ public class ProtectionsMain extends JavaPlugin {
 
         Bukkit.getPluginManager().registerEvents(new ProtectionListener(this.manager), this);
 
-        ProtectionsCommand.register(this.manager);
+        ProtectionsCommand.create(this.manager);
     }
 
     @Override
