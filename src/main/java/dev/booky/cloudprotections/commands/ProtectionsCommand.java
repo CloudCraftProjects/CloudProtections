@@ -8,6 +8,7 @@ import dev.booky.cloudprotections.util.ProtectionRegion;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPIBukkit;
 import dev.jorel.commandapi.CommandTree;
+import dev.jorel.commandapi.SuggestionInfo;
 import dev.jorel.commandapi.arguments.Argument;
 import dev.jorel.commandapi.arguments.ArgumentSuggestions;
 import dev.jorel.commandapi.arguments.CustomArgument;
@@ -34,12 +35,15 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.util.Vector;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -79,10 +83,12 @@ public final class ProtectionsCommand {
     }
 
     private void register() {
-        Supplier<ListArgument<ProtectionFlag>> flagsListArg = () -> new ListArgumentBuilder<ProtectionFlag>("flags")
-                .withList(ProtectionFlag.values())
-                .withMapper(flag -> flag.name().toLowerCase(Locale.ROOT))
-                .buildGreedy();
+        Function<BiPredicate<SuggestionInfo<CommandSender>, ProtectionFlag>, ListArgument<ProtectionFlag>> flagsListArg =
+                filter -> new ListArgumentBuilder<ProtectionFlag>("flags")
+                        .withList(info -> Arrays.stream(ProtectionFlag.values())
+                                .filter(flag -> filter.test(info, flag)).toList())
+                        .withMapper(flag -> flag.name().toLowerCase(Locale.ROOT))
+                        .buildGreedy();
 
         Supplier<Argument<ProtectionRegion>> regionArgument = () -> new CustomArgument<>(
                 new StringArgument("region"), info -> {
@@ -96,6 +102,12 @@ public final class ProtectionsCommand {
             throw new CustomArgument.CustomArgumentException(errorMsg);
         }).replaceSuggestions(ArgumentSuggestions.strings(info ->
                 this.manager.getRegionIds().toArray(String[]::new)));
+
+        BiPredicate<SuggestionInfo<CommandSender>, ProtectionFlag> flagRemoveFilter = (info, flag) -> {
+            ProtectionRegion region = Objects.requireNonNull(info.previousArgs().getUnchecked("region"));
+            return region.hasFlag(flag);
+        };
+        BiPredicate<SuggestionInfo<CommandSender>, ProtectionFlag> flagAddFilter = flagRemoveFilter.negate();
 
         new CommandTree("cloudprotections")
                 .withPermission("cloudprotections.command")
@@ -114,10 +126,10 @@ public final class ProtectionsCommand {
                 .then(new LiteralArgument("flags")
                         .then(regionArgument.get()
                                 .then(new LiteralArgument("add")
-                                        .then(flagsListArg.get()
+                                        .then(flagsListArg.apply(flagAddFilter)
                                                 .executesNative(this::addRegionFlag)))
                                 .then(new LiteralArgument("remove")
-                                        .then(flagsListArg.get()
+                                        .then(flagsListArg.apply(flagRemoveFilter)
                                                 .executesNative(this::removeRegionFlag)))
                                 .then(new LiteralArgument("list")
                                         .executesNative(this::listRegionFlags))))
