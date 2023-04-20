@@ -10,7 +10,9 @@ plugins {
 group = "dev.booky"
 version = "1.0.0"
 
-val plugin: Configuration by configurations.creating { /**/ }
+val plugin: Configuration by configurations.creating {
+    isTransitive = false
+}
 
 repositories {
     // TODO: find an actual repository for this
@@ -29,20 +31,22 @@ repositories {
     maven("https://repo.papermc.io/repository/maven-public/")
 }
 
+val cloudCoreVersion = "1.0.0"
+
 dependencies {
     compileOnlyApi("io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT")
 
     api("org.bstats:bstats-bukkit:3.0.2")
 
     // need to be published to maven local manually
-    compileOnlyApi("dev.booky:cloudcore:1.0.0") {
+    compileOnlyApi("dev.booky:cloudcore:$cloudCoreVersion") {
         exclude("io.papermc.paper")
         exclude("org.bstats")
     }
 
     // testserver dependency plugins
-    plugin("dev.booky:cloudcore:1.0.0:all") { isTransitive = false }
-    plugin("dev.jorel:commandapi-bukkit-plugin:9.0.0-SNAPSHOT") { isTransitive = false }
+    plugin("dev.booky:cloudcore:$cloudCoreVersion:all")
+    plugin("dev.jorel:commandapi-bukkit-plugin:9.0.0-SNAPSHOT")
 }
 
 java {
