@@ -123,6 +123,11 @@ public final class ProtectionsCommand {
                         .withPermission("cloudprotections.command.delete")
                         .then(regionArgument.get()
                                 .executesNative(this::deleteRegion)))
+                .then(new LiteralArgument("rename")
+                        .withPermission("cloudprotections.command.rename")
+                        .then(regionArgument.get()
+                                .then(new StringArgument("id")
+                                        .executesNative(this::renameRegion))))
                 .then(new LiteralArgument("list")
                         .withPermission("cloudprotections.command.list")
                         .executesNative(this::listRegions))
@@ -181,6 +186,24 @@ public final class ProtectionsCommand {
                             this.success(sender, Component.translatable("protections.command.delete.success",
                                     Component.text(region.getId(), NamedTextColor.WHITE)));
                         }))));
+    }
+
+    private void renameRegion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        String newId = Objects.requireNonNull(args.getUnchecked("id"));
+        ProtectionRegion newRegion = new ProtectionRegion(newId, region.getBox(), region.getFlags());
+
+        if (this.manager.getRegion(newId) != null) {
+            throw this.fail(Component.translatable("protections.command.rename.already-exists",
+                    Component.text(newId, NamedTextColor.WHITE)));
+        }
+
+        this.manager.updateRegions(regions -> {
+            regions.remove(region.getId());
+            regions.put(newId, newRegion);
+        });
+        this.success(sender, Component.translatable("protections.command.rename.success",
+                Component.text(region.getId(), NamedTextColor.WHITE), Component.text(newId, NamedTextColor.WHITE)));
     }
 
     private void listRegions(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
