@@ -62,18 +62,23 @@ public final class ProtectionsCommand {
     }
 
     private WrapperCommandSyntaxException fail(Component message) {
-        return CommandAPIBukkit.failWithAdventureComponent(this.manager.getPrefix()
-                .append(message.colorIfAbsent(NamedTextColor.RED)));
+        return CommandAPIBukkit.failWithAdventureComponent(this.failMsg(message));
     }
 
     private void fail(CommandSender sender, Component message) {
-        sender.sendMessage(this.manager.getPrefix()
-                .append(message.colorIfAbsent(NamedTextColor.RED)));
+        sender.sendMessage(this.failMsg(message));
+    }
+
+    private Component failMsg(Component message) {
+        return this.manager.getPrefix().append(message.colorIfAbsent(NamedTextColor.RED));
     }
 
     private void success(CommandSender sender, Component message) {
-        sender.sendMessage(this.manager.getPrefix()
-                .append(message.colorIfAbsent(NamedTextColor.YELLOW)));
+        sender.sendMessage(this.successMsg(message));
+    }
+
+    private Component successMsg(Component message) {
+        return this.manager.getPrefix().append(message.colorIfAbsent(NamedTextColor.YELLOW));
     }
 
     private void unregister() {
@@ -97,9 +102,9 @@ public final class ProtectionsCommand {
                 return region;
             }
 
-            // apparently this is not translatable :(
-            CustomArgument.MessageBuilder errorMsg = new CustomArgument.MessageBuilder("Invalid region: ").appendArgInput().appendHere();
-            throw new CustomArgument.CustomArgumentException(errorMsg);
+            throw CustomArgument.CustomArgumentException.fromAdventureComponent(failMsg(
+                    Component.translatable("protections.command.invalid-region",
+                            Component.text(info.currentInput(), NamedTextColor.WHITE))));
         }).replaceSuggestions(ArgumentSuggestions.strings(info ->
                 this.manager.getRegionIds().toArray(String[]::new)));
 
