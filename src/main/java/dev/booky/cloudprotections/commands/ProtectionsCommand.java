@@ -153,7 +153,7 @@ public final class ProtectionsCommand {
             throw this.fail(Component.translatable("protections.command.create.already-exists", Component.text(id, NamedTextColor.WHITE)));
         }
 
-        World dimension = args.getOrDefaultUnchecked("dimension", sender::getWorld);
+        World dimension = args.<World>getOptionalUnchecked("dimension").orElseGet(sender::getWorld);
         Vector corner1 = Objects.requireNonNull(args.<Location>getUnchecked("corner1")).toVector();
         Vector corner2 = Objects.requireNonNull(args.<Location>getUnchecked("corner2")).toVector();
 
