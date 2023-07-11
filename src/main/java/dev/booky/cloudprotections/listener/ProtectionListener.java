@@ -6,7 +6,7 @@ import dev.booky.cloudprotections.ProtectionsManager;
 import dev.booky.cloudprotections.region.ProtectionFlag;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -92,8 +92,11 @@ public final class ProtectionListener implements Listener {
         if (event.getFoodLevel() >= event.getEntity().getFoodLevel()) {
             return;
         }
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
 
-        if (this.manager.isProtected(event.getEntity().getLocation(), ProtectionFlag.HUNGER, event.getEntity())) {
+        if (this.manager.isProtected(event.getEntity().getLocation(), ProtectionFlag.HUNGER, player)) {
             event.setCancelled(true);
         }
     }
@@ -148,7 +151,7 @@ public final class ProtectionListener implements Listener {
     @EventHandler
     public void onHangingBreak(HangingBreakByEntityEvent event) {
         // always cancel break events if it wasn't caused by a player, otherwise let the method check for creative
-        HumanEntity remover = event.getRemover() instanceof HumanEntity ? (HumanEntity) event.getRemover() : null;
+        Player remover = event.getRemover() instanceof Player ? (Player) event.getRemover() : null;
 
         if (this.manager.isProtected(event.getEntity().getLocation(), ProtectionFlag.INTERACT, remover)) {
             event.setCancelled(true);

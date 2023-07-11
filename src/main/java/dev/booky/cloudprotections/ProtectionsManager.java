@@ -3,10 +3,12 @@ package dev.booky.cloudprotections;
 
 import dev.booky.cloudcore.config.ConfigLoader;
 import dev.booky.cloudprotections.config.ProtectionAreaSerializer;
+import dev.booky.cloudprotections.config.ProtectionExclusionSerializer;
 import dev.booky.cloudprotections.config.ProtectionRegionSerializer;
 import dev.booky.cloudprotections.region.ProtectionFlag;
 import dev.booky.cloudprotections.region.ProtectionRegion;
 import dev.booky.cloudprotections.region.area.IProtectionArea;
+import dev.booky.cloudprotections.region.exclusions.IProtectionExclusion;
 import io.leangen.geantyref.TypeToken;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -14,7 +16,7 @@ import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.serialize.TypeSerializerCollection;
@@ -55,7 +57,8 @@ public final class ProtectionsManager {
 
     private static final Consumer<TypeSerializerCollection.Builder> CONFIG_SERIALIZERS = builder -> builder
             .register(ProtectionRegion.class, ProtectionRegionSerializer.INSTANCE)
-            .register(IProtectionArea.class, ProtectionAreaSerializer.INSTANCE);
+            .register(IProtectionArea.class, ProtectionAreaSerializer.INSTANCE)
+            .register(IProtectionExclusion.class, ProtectionExclusionSerializer.INSTANCE);
     private static final TypeToken<List<ProtectionRegion>> REGIONS_TOKEN = new TypeToken<>() {};
 
     private final Plugin plugin;
@@ -86,16 +89,19 @@ public final class ProtectionsManager {
         }
     }
 
-    public final boolean isProtected(Location location, ProtectionFlag flag, @Nullable HumanEntity entity) {
-        return this.isProtected(location.getBlock(), flag, entity);
+    public final boolean isProtected(Location location, ProtectionFlag flag, @Nullable Player player) {
+        return this.isProtected(location.getBlock(), flag, player);
     }
 
-    public final boolean isProtected(Block block, ProtectionFlag flag, @Nullable HumanEntity entity) {
-        if (entity != null && entity.getGameMode() == GameMode.CREATIVE) {
+    public final boolean isProtected(Block block, ProtectionFlag flag, @Nullable Player player) {
+        if (player != null && player.getGameMode() == GameMode.CREATIVE) {
             return false;
         }
 
         for (ProtectionRegion region : this.getRegions()) {
+            if (player != null && region.isExcluded(player)) {
+                continue;
+            }
             if (region.check(block, flag)) {
                 return true;
             }

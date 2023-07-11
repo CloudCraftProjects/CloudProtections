@@ -4,6 +4,7 @@ package dev.booky.cloudprotections.config;
 import dev.booky.cloudprotections.region.ProtectionFlag;
 import dev.booky.cloudprotections.region.ProtectionRegion;
 import dev.booky.cloudprotections.region.area.IProtectionArea;
+import dev.booky.cloudprotections.region.exclusions.IProtectionExclusion;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
@@ -11,12 +12,11 @@ import org.spongepowered.configurate.serialize.SerializationException;
 import org.spongepowered.configurate.serialize.TypeSerializer;
 
 import java.lang.reflect.Type;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegion> {
+public final class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegion> {
 
     public static final ProtectionRegionSerializer INSTANCE = new ProtectionRegionSerializer();
 
@@ -32,21 +32,13 @@ public class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegi
         IProtectionArea area = Objects.requireNonNull(node.get(IProtectionArea.class));
         String id = node.node("id").getString(RandomStringUtils.randomAlphanumeric(8));
 
-        ConfigurationNode flagsNode = node.node("flags");
-        Set<ProtectionFlag> flags;
-        if (flagsNode.virtual()) {
-            flags = EnumSet.allOf(ProtectionFlag.class);
-        } else {
-            List<ProtectionFlag> list = flagsNode.getList(ProtectionFlag.class, List::of);
-            if (list.isEmpty()) {
-                // apparently doesn't get handled by EnumSet#copyOf...
-                flags = EnumSet.noneOf(ProtectionFlag.class);
-            } else {
-                flags = EnumSet.copyOf(list);
-            }
-        }
+        ConfigurationNode exclusionsNode = node.node("exclusions");
+        List<IProtectionExclusion> exclusions = exclusionsNode.getList(IProtectionExclusion.class, List::of);
 
-        return new ProtectionRegion(id, area, flags);
+        ConfigurationNode flagsNode = node.node("flags");
+        List<ProtectionFlag> flags = flagsNode.getList(ProtectionFlag.class, List::of);
+
+        return new ProtectionRegion(id, area, Set.copyOf(exclusions), Set.copyOf(flags));
     }
 
     @Override
@@ -59,8 +51,7 @@ public class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegi
         node.set(obj.getArea());
         node.node("id").set(obj.getId());
 
-        // why the fuck does this EnumSerializer not work when serializing this?
-        // this thing has worked in every other project I have used this in (more than 1), so why not here?
-        node.node("flags").set(obj.getFlags().stream().map(ProtectionFlag::name).toList());
+        node.node("exclusions").setList(IProtectionExclusion.class, List.copyOf(obj.getExclusions()));
+        node.node("flags").setList(ProtectionFlag.class, List.copyOf(obj.getFlags()));
     }
 }

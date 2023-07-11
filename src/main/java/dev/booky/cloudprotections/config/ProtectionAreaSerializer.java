@@ -14,7 +14,7 @@ import org.spongepowered.configurate.serialize.TypeSerializer;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
-public class ProtectionAreaSerializer implements TypeSerializer<IProtectionArea> {
+public final class ProtectionAreaSerializer implements TypeSerializer<IProtectionArea> {
 
     public static final ProtectionAreaSerializer INSTANCE = new ProtectionAreaSerializer();
 
