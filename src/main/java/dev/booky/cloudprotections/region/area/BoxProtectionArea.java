@@ -2,6 +2,7 @@ package dev.booky.cloudprotections.region.area;
 // Created by booky10 in CloudProtections (13:58 11.07.23)
 
 import dev.booky.cloudcore.util.BlockBBox;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 
 public final class BoxProtectionArea implements IProtectionArea{
@@ -15,6 +16,11 @@ public final class BoxProtectionArea implements IProtectionArea{
     @Override
     public boolean contains(Block block) {
         return this.box.contains(block);
+    }
+
+    @Override
+    public Location getCenterLocation() {
+        return this.box.getCenterLocation();
     }
 
     public BlockBBox getBox() {

@@ -228,7 +228,7 @@ public final class ProtectionsCommand {
         for (ProtectionRegion region : regions) {
             AreaType areaType = AreaType.get(region.getArea());
             Component description = areaType.getDescription(region.getArea());
-            Location centerLocation = areaType.getCenterLoc(region.getArea());
+            Location centerLocation = region.getArea().getCenterLocation();
 
             msg.appendNewline().appendSpace();
             msg.append(Component.translatable("protections.command.list.entry",
@@ -373,11 +373,6 @@ public final class ProtectionsCommand {
                         .hoverEvent(Component.translatable("protections.command.list.hover",
                                 Component.text(centerStr, NamedTextColor.WHITE)));
             }
-
-            @Override
-            public Location getCenterLoc(IProtectionArea instance) {
-                return ((BoxProtectionArea) instance).getBox().getCenterLocation();
-            }
         },
         SPHERE {
             @Override
@@ -420,12 +415,6 @@ public final class ProtectionsCommand {
                         .hoverEvent(Component.translatable("protections.command.list.hover",
                                 Component.text(centerStr, NamedTextColor.WHITE)));
             }
-
-            @Override
-            public Location getCenterLoc(IProtectionArea instance) {
-                Block centerBlock = ((SphericalProtectionArea) instance).getCenterBlock();
-                return centerBlock.getLocation().add(0.5d, 0.125d, 0.5d);
-            }
         };
 
         public static AreaType get(IProtectionArea instance) {
@@ -442,8 +431,6 @@ public final class ProtectionsCommand {
         public abstract IProtectionArea create(NativeProxyCommandSender sender, CommandArguments args);
 
         public abstract Component getDescription(IProtectionArea instance);
-
-        public abstract Location getCenterLoc(IProtectionArea instance);
 
         protected abstract boolean matches(IProtectionArea instance);
     }

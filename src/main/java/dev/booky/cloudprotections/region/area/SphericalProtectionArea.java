@@ -3,6 +3,7 @@ package dev.booky.cloudprotections.region.area;
 
 import io.papermc.paper.math.BlockPosition;
 import io.papermc.paper.math.Position;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
@@ -36,6 +37,11 @@ public final class SphericalProtectionArea implements IProtectionArea {
         double diffZ = centerBlock.blockZ() - block.getZ();
         double distSq = diffX * diffX + diffY * diffY + diffZ * diffZ;
         return distSq <= this.radiusSq;
+    }
+
+    @Override
+    public Location getCenterLocation() {
+        return this.getCenterBlock().getLocation().add(0.5d, 0.125d, 0.5d);
     }
 
     public Block getCenterBlock() {
