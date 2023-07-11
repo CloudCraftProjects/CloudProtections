@@ -2,7 +2,7 @@ plugins {
     id("java-library")
     id("maven-publish")
 
-    id("net.minecrell.plugin-yml.bukkit") version "0.5.3"
+    id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
     id("xyz.jpenilla.run-paper") version "1.0.6"
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
@@ -28,7 +28,7 @@ repositories {
 val cloudCoreVersion = "1.0.0"
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.20-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
 
     implementation("org.bstats:bstats-bukkit:3.0.2")
 
@@ -37,7 +37,7 @@ dependencies {
 
     // testserver dependency plugins
     plugin("dev.booky:cloudcore:$cloudCoreVersion:all")
-    plugin("dev.jorel:commandapi-bukkit-plugin:9.0.2")
+    plugin("dev.jorel:commandapi-bukkit-plugin:9.0.3")
 }
 
 java {
@@ -54,15 +54,15 @@ publishing {
 
 bukkit {
     main = "$group.cloudprotections.ProtectionsMain"
-    apiVersion = "1.19"
+    apiVersion = "1.20"
     authors = listOf("booky10")
-    depend = listOf("CloudCore")
+    depend = listOf("CloudCore", "CommandAPI")
     load = net.minecrell.pluginyml.bukkit.BukkitPluginDescription.PluginLoadOrder.POSTWORLD
 }
 
 tasks {
     runServer {
-        minecraftVersion("1.20")
+        minecraftVersion("1.20.1")
         pluginJars.from(plugin.resolve())
     }
 
