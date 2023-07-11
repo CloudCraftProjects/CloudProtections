@@ -1,9 +1,9 @@
 package dev.booky.cloudprotections.config;
 // Created by booky10 in CraftAttack (21:22 13.11.22)
 
-import dev.booky.cloudcore.util.BlockBBox;
-import dev.booky.cloudprotections.util.ProtectionFlag;
-import dev.booky.cloudprotections.util.ProtectionRegion;
+import dev.booky.cloudprotections.region.ProtectionFlag;
+import dev.booky.cloudprotections.region.ProtectionRegion;
+import dev.booky.cloudprotections.region.area.IProtectionArea;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
@@ -29,7 +29,7 @@ public class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegi
             return null;
         }
 
-        BlockBBox box = Objects.requireNonNull(node.get(BlockBBox.class));
+        IProtectionArea area = Objects.requireNonNull(node.get(IProtectionArea.class));
         String id = node.node("id").getString(RandomStringUtils.randomAlphanumeric(8));
 
         ConfigurationNode flagsNode = node.node("flags");
@@ -46,7 +46,7 @@ public class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegi
             }
         }
 
-        return new ProtectionRegion(id, box, flags);
+        return new ProtectionRegion(id, area, flags);
     }
 
     @Override
@@ -56,7 +56,7 @@ public class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegi
             return;
         }
 
-        node.set(obj.getBox());
+        node.set(obj.getArea());
         node.node("id").set(obj.getId());
 
         // why the fuck does this EnumSerializer not work when serializing this?

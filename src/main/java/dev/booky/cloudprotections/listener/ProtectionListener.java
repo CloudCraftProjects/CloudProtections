@@ -3,7 +3,7 @@ package dev.booky.cloudprotections.listener;
 
 import com.destroystokyo.paper.event.entity.EntityPathfindEvent;
 import dev.booky.cloudprotections.ProtectionsManager;
-import dev.booky.cloudprotections.util.ProtectionFlag;
+import dev.booky.cloudprotections.region.ProtectionFlag;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.HumanEntity;

@@ -3,8 +3,11 @@ package dev.booky.cloudprotections.commands;
 
 import dev.booky.cloudcore.util.BlockBBox;
 import dev.booky.cloudprotections.ProtectionsManager;
-import dev.booky.cloudprotections.util.ProtectionFlag;
-import dev.booky.cloudprotections.util.ProtectionRegion;
+import dev.booky.cloudprotections.region.ProtectionFlag;
+import dev.booky.cloudprotections.region.ProtectionRegion;
+import dev.booky.cloudprotections.region.area.BoxProtectionArea;
+import dev.booky.cloudprotections.region.area.IProtectionArea;
+import dev.booky.cloudprotections.region.area.SphericalProtectionArea;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPIBukkit;
 import dev.jorel.commandapi.CommandTree;
@@ -12,6 +15,7 @@ import dev.jorel.commandapi.SuggestionInfo;
 import dev.jorel.commandapi.arguments.Argument;
 import dev.jorel.commandapi.arguments.ArgumentSuggestions;
 import dev.jorel.commandapi.arguments.CustomArgument;
+import dev.jorel.commandapi.arguments.DoubleArgument;
 import dev.jorel.commandapi.arguments.ListArgument;
 import dev.jorel.commandapi.arguments.ListArgumentBuilder;
 import dev.jorel.commandapi.arguments.LiteralArgument;
@@ -22,6 +26,8 @@ import dev.jorel.commandapi.arguments.WorldArgument;
 import dev.jorel.commandapi.exceptions.WrapperCommandSyntaxException;
 import dev.jorel.commandapi.executors.CommandArguments;
 import dev.jorel.commandapi.wrappers.NativeProxyCommandSender;
+import io.papermc.paper.math.BlockPosition;
+import io.papermc.paper.math.Position;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentBuilder;
 import net.kyori.adventure.text.event.ClickCallback;
@@ -29,6 +35,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -114,16 +121,18 @@ public final class ProtectionsCommand {
         };
         BiPredicate<SuggestionInfo<CommandSender>, ProtectionFlag> flagAddFilter = flagRemoveFilter.negate();
 
+        LiteralArgument createArgument = new LiteralArgument("create");
+        for (AreaType areaType : AreaType.values()) {
+            createArgument.then(new LiteralArgument(areaType.name().toLowerCase(Locale.ROOT))
+                    .then(new StringArgument("id")
+                            .then(areaType.provideArgs(this))));
+        }
+
         new CommandTree("cloudprotections")
                 .withPermission("cloudprotections.command")
                 .withAliases("cprotections", "cprots")
-                .then(new LiteralArgument("create")
-                        .withPermission("cloudprotections.command.create")
-                        .then(new StringArgument("id")
-                                .then(new LocationArgument("corner1", LocationType.BLOCK_POSITION)
-                                        .then(new LocationArgument("corner2", LocationType.BLOCK_POSITION)
-                                                .then(new WorldArgument("dimension").setOptional(true)
-                                                        .executesNative(this::createRegion))))))
+                .then(createArgument
+                        .withPermission("cloudprotections.command.create"))
                 .then(new LiteralArgument("list")
                         .withPermission("cloudprotections.command.list")
                         .executesNative(this::listRegions))
@@ -152,18 +161,14 @@ public final class ProtectionsCommand {
                 .register();
     }
 
-    private void createRegion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+    private void createRegion(NativeProxyCommandSender sender, CommandArguments args, AreaType areaType) throws WrapperCommandSyntaxException {
         String id = Objects.requireNonNull(args.getUnchecked("id"));
         if (this.manager.getRegion(id) != null) {
             throw this.fail(Component.translatable("protections.command.create.already-exists", Component.text(id, NamedTextColor.WHITE)));
         }
 
-        World dimension = args.<World>getOptionalUnchecked("dimension").orElseGet(sender::getWorld);
-        Vector corner1 = Objects.requireNonNull(args.<Location>getUnchecked("corner1")).toVector();
-        Vector corner2 = Objects.requireNonNull(args.<Location>getUnchecked("corner2")).toVector();
-
-        BlockBBox box = new BlockBBox(dimension, corner1, corner2);
-        ProtectionRegion region = new ProtectionRegion(id, box, EnumSet.allOf(ProtectionFlag.class));
+        IProtectionArea area = areaType.create(sender, args);
+        ProtectionRegion region = new ProtectionRegion(id, area, EnumSet.allOf(ProtectionFlag.class));
 
         this.manager.updateRegions(regions -> regions.putIfAbsent(id, region));
         this.success(sender, Component.translatable("protections.command.create.success", Component.text(id, NamedTextColor.WHITE)));
@@ -195,7 +200,7 @@ public final class ProtectionsCommand {
     private void renameRegion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
         ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
         String newId = Objects.requireNonNull(args.getUnchecked("id"));
-        ProtectionRegion newRegion = new ProtectionRegion(newId, region.getBox(), region.getFlags());
+        ProtectionRegion newRegion = new ProtectionRegion(newId, region.getArea(), region.getFlags());
 
         if (this.manager.getRegion(newId) != null) {
             throw this.fail(Component.translatable("protections.command.rename.already-exists",
@@ -221,28 +226,22 @@ public final class ProtectionsCommand {
                 .args(Component.text(regions.size(), NamedTextColor.WHITE));
 
         for (ProtectionRegion region : regions) {
-            BlockBBox box = region.getBox();
-            String minStr = box.getMinX() + ":" + box.getMinY() + ":" + box.getMinZ();
-            String maxStr = box.getMaxX() + ":" + box.getMaxY() + ":" + box.getMaxZ();
-            String centerStr = box.getBlockCenterX() + ":" + box.getBlockCenterY() + ":" + box.getBlockCenterZ();
+            AreaType areaType = AreaType.get(region.getArea());
+            Component description = areaType.getDescription(region.getArea());
+            Location centerLocation = areaType.getCenterLoc(region.getArea());
 
             msg.appendNewline().appendSpace();
             msg.append(Component.translatable("protections.command.list.entry",
-                            Component.text(region.getId(), NamedTextColor.WHITE),
-                            Component.text(minStr, NamedTextColor.WHITE),
-                            Component.text(maxStr, NamedTextColor.WHITE),
-                            Component.text(box.getWorld().key().asString(), NamedTextColor.WHITE),
+                            Component.text(region.getId(), NamedTextColor.WHITE), description,
                             Component.text(region.getFlags().size(), NamedTextColor.WHITE))
-                    .hoverEvent(Component.translatable("protections.command.list.hover",
-                            Component.text(centerStr, NamedTextColor.WHITE)))
                     .clickEvent(ClickEvent.callback(clicker -> {
                         if (clicker == sender.getCaller() && clicker instanceof Entity entity) {
-                            entity.teleportAsync(box.getCenterLocation(), PlayerTeleportEvent.TeleportCause.COMMAND);
+                            entity.teleportAsync(centerLocation, PlayerTeleportEvent.TeleportCause.COMMAND);
                         }
                     }, opts -> opts.uses(ClickCallback.UNLIMITED_USES).lifetime(Duration.ofMinutes(10)))));
         }
 
-        success(sender, msg.build());
+        this.success(sender, msg.build());
     }
 
     private void addRegionFlag(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
@@ -273,7 +272,7 @@ public final class ProtectionsCommand {
             msg.append(flag.getName().colorIfAbsent(NamedTextColor.WHITE));
         }
 
-        success(sender, msg.build());
+        this.success(sender, msg.build());
     }
 
     private void removeRegionFlag(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
@@ -332,5 +331,120 @@ public final class ProtectionsCommand {
         }
 
         success(sender, msg.build());
+    }
+
+    private enum AreaType {
+        BOX {
+            @Override
+            public Argument<?> provideArgs(ProtectionsCommand command) {
+                return new LocationArgument("corner1", LocationType.BLOCK_POSITION)
+                        .then(new LocationArgument("corner2", LocationType.BLOCK_POSITION)
+                                .then(new WorldArgument("dimension").setOptional(true)
+                                        .executesNative((NativeProxyCommandSender sender, CommandArguments args)
+                                                -> command.createRegion(sender, args, this))));
+            }
+
+            @Override
+            public IProtectionArea create(NativeProxyCommandSender sender, CommandArguments args) {
+                World dimension = args.<World>getOptionalUnchecked("dimension").orElseGet(sender::getWorld);
+                Vector corner1 = Objects.requireNonNull(args.<Location>getUnchecked("corner1")).toVector();
+                Vector corner2 = Objects.requireNonNull(args.<Location>getUnchecked("corner2")).toVector();
+
+                BlockBBox box = new BlockBBox(dimension, corner1, corner2);
+                return new BoxProtectionArea(box);
+            }
+
+            @Override
+            protected boolean matches(IProtectionArea instance) {
+                return instance instanceof BoxProtectionArea;
+            }
+
+            @Override
+            public Component getDescription(IProtectionArea instance) {
+                BlockBBox box = ((BoxProtectionArea) instance).getBox();
+                String dimensionStr = box.getWorld().getKey().asString();
+                String minStr = box.getMinX() + ":" + box.getMinY() + ":" + box.getMinZ();
+                String maxStr = box.getMaxX() + ":" + box.getMaxY() + ":" + box.getMaxZ();
+                String centerStr = box.getBlockCenterX() + ":" + box.getBlockCenterY() + ":" + box.getBlockCenterZ();
+                return Component.translatable("protections.command.list.box",
+                                Component.text(minStr, NamedTextColor.WHITE),
+                                Component.text(maxStr, NamedTextColor.WHITE),
+                                Component.text(dimensionStr, NamedTextColor.WHITE))
+                        .hoverEvent(Component.translatable("protections.command.list.hover",
+                                Component.text(centerStr, NamedTextColor.WHITE)));
+            }
+
+            @Override
+            public Location getCenterLoc(IProtectionArea instance) {
+                return ((BoxProtectionArea) instance).getBox().getCenterLocation();
+            }
+        },
+        SPHERE {
+            @Override
+            public Argument<?> provideArgs(ProtectionsCommand command) {
+                return new LocationArgument("center", LocationType.BLOCK_POSITION)
+                        .then(new DoubleArgument("radius", Vector.getEpsilon())
+                                .then(new WorldArgument("dimension").setOptional(true)
+                                        .executesNative((NativeProxyCommandSender sender, CommandArguments args)
+                                                -> command.createRegion(sender, args, this))));
+            }
+
+            @Override
+            public IProtectionArea create(NativeProxyCommandSender sender, CommandArguments args) {
+                World dimension = args.<World>getOptionalUnchecked("dimension").orElseGet(sender::getWorld);
+                double radius = Objects.requireNonNull(args.<Double>getUnchecked("radius"));
+
+                Block centerBlock = Objects.requireNonNull(args.<Location>getUnchecked("center")).getBlock();
+                BlockPosition centerBlockPos = Position.block(centerBlock.getX(), centerBlock.getY(), centerBlock.getZ());
+
+                return new SphericalProtectionArea(dimension, centerBlockPos, radius);
+            }
+
+            @Override
+            protected boolean matches(IProtectionArea instance) {
+                return instance instanceof SphericalProtectionArea;
+            }
+
+            @Override
+            public Component getDescription(IProtectionArea instance) {
+                SphericalProtectionArea area = ((SphericalProtectionArea) instance);
+                BlockPosition centerBlock = area.getCenterBlockPos();
+
+                String dimensionStr = area.getWorld().getKey().asString();
+                String centerStr = centerBlock.blockX() + ":" + centerBlock.blockY() + ":" + centerBlock.blockZ();
+                String radiusStr = "%,.2f".formatted(area.getRadius());
+                return Component.translatable("protections.command.list.spherical",
+                                Component.text(radiusStr, NamedTextColor.WHITE),
+                                Component.text(centerStr, NamedTextColor.WHITE),
+                                Component.text(dimensionStr, NamedTextColor.WHITE))
+                        .hoverEvent(Component.translatable("protections.command.list.hover",
+                                Component.text(centerStr, NamedTextColor.WHITE)));
+            }
+
+            @Override
+            public Location getCenterLoc(IProtectionArea instance) {
+                Block centerBlock = ((SphericalProtectionArea) instance).getCenterBlock();
+                return centerBlock.getLocation().add(0.5d, 0.125d, 0.5d);
+            }
+        };
+
+        public static AreaType get(IProtectionArea instance) {
+            for (AreaType areaType : values()) {
+                if (areaType.matches(instance)) {
+                    return areaType;
+                }
+            }
+            throw new UnsupportedOperationException("Unsupported area implementation: " + instance);
+        }
+
+        public abstract Argument<?> provideArgs(ProtectionsCommand command);
+
+        public abstract IProtectionArea create(NativeProxyCommandSender sender, CommandArguments args);
+
+        public abstract Component getDescription(IProtectionArea instance);
+
+        public abstract Location getCenterLoc(IProtectionArea instance);
+
+        protected abstract boolean matches(IProtectionArea instance);
     }
 }

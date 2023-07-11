@@ -1,4 +1,4 @@
-package dev.booky.cloudprotections.util;
+package dev.booky.cloudprotections.region;
 // Created by booky10 in CraftAttack (21:31 13.11.22)
 
 import net.kyori.adventure.text.Component;
