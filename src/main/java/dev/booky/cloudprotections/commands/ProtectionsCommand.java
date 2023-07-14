@@ -17,6 +17,7 @@ import dev.jorel.commandapi.arguments.ArgumentSuggestions;
 import dev.jorel.commandapi.arguments.CustomArgument;
 import dev.jorel.commandapi.arguments.DoubleArgument;
 import dev.jorel.commandapi.arguments.GreedyStringArgument;
+import dev.jorel.commandapi.arguments.IntegerArgument;
 import dev.jorel.commandapi.arguments.ListArgument;
 import dev.jorel.commandapi.arguments.ListArgumentBuilder;
 import dev.jorel.commandapi.arguments.LiteralArgument;
@@ -172,7 +173,13 @@ public final class ProtectionsCommand {
                                                 .then(new GreedyStringArgument("uuid")
                                                         .executesNative(this::removeRegionExclusion)))
                                         .then(new LiteralArgument("list")
-                                                .executesNative(this::listRegionExclusions)))))
+                                                .executesNative(this::listRegionExclusions)))
+                                .then(new LiteralArgument("priority")
+                                        .withPermission("cloudprotections.command.priority")
+                                        .executesNative(this::showRegionPriority)
+                                        .then(new IntegerArgument("priority")
+                                                .withPermission("cloudprotections.command.priority.update")
+                                                .executesNative(this::updateRegionPriority)))))
                 .register();
     }
 
@@ -402,6 +409,35 @@ public final class ProtectionsCommand {
         }
 
         this.success(sender, msg.build());
+    }
+
+    private void showRegionPriority(NativeProxyCommandSender sender, CommandArguments args) {
+        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        this.success(sender, Component.translatable("protections.command.priority.info",
+                Component.text(region.getPriority(), NamedTextColor.WHITE),
+                Component.text(region.getId(), NamedTextColor.WHITE)));
+    }
+
+    private void updateRegionPriority(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        int newPriority = Objects.requireNonNull(args.<Integer>getUnchecked("priority"));
+
+        if (region.getPriority() == newPriority) {
+            throw this.fail(Component.translatable("protections.command.priority.already-set",
+                    Component.text(newPriority, NamedTextColor.WHITE),
+                    Component.text(region.getId(), NamedTextColor.WHITE)));
+        }
+
+        this.manager.updateRegions(regions -> {
+            ProtectionRegion newRegion = new ProtectionRegion(region.getId(), region.getArea(),
+                    newPriority, region.getExcludedPlayerIds(), region.getFlags());
+            regions.put(region.getId(), newRegion);
+        });
+
+        this.success(sender, Component.translatable("protections.command.priority.updated",
+                Component.text(newPriority, NamedTextColor.WHITE),
+                Component.text(region.getId(), NamedTextColor.WHITE)));
+
     }
 
     private enum AreaType {
