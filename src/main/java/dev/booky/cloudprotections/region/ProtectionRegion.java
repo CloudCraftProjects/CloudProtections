@@ -2,7 +2,6 @@ package dev.booky.cloudprotections.region;
 // Created by booky10 in CraftAttack (21:22 13.11.22)
 
 import dev.booky.cloudprotections.region.area.IProtectionArea;
-import dev.booky.cloudprotections.region.exclusions.IProtectionExclusion;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
@@ -10,12 +9,13 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 public final class ProtectionRegion {
 
     private final String id;
     private final IProtectionArea area;
-    private final Set<IProtectionExclusion> exclusions;
+    private final Set<UUID> excludedPlayerIds;
     private final Set<ProtectionFlag> flags;
 
     public ProtectionRegion(String id, IProtectionArea area) {
@@ -30,10 +30,10 @@ public final class ProtectionRegion {
         this(id, area, Set.of(), flags);
     }
 
-    public ProtectionRegion(String id, IProtectionArea area, Set<IProtectionExclusion> exclusions, Set<ProtectionFlag> flags) {
+    public ProtectionRegion(String id, IProtectionArea area, Set<UUID> excludedPlayerIds, Set<ProtectionFlag> flags) {
         this.id = id;
         this.area = area;
-        this.exclusions = new HashSet<>(exclusions);
+        this.excludedPlayerIds = new HashSet<>(excludedPlayerIds);
         this.flags = EnumSet.copyOf(flags);
     }
 
@@ -42,12 +42,7 @@ public final class ProtectionRegion {
     }
 
     public final boolean isExcluded(Player player) {
-        for (IProtectionExclusion exclusion : this.exclusions) {
-            if (exclusion.isExcluded(player)) {
-                return true;
-            }
-        }
-        return false;
+        return this.excludedPlayerIds.contains(player.getUniqueId());
     }
 
     public final boolean addFlag(ProtectionFlag flag) {
@@ -62,12 +57,12 @@ public final class ProtectionRegion {
         return this.flags.contains(flag);
     }
 
-    public final boolean addExclusion(IProtectionExclusion exclusion) {
-        return this.exclusions.add(exclusion);
+    public final boolean addExclusion(UUID exclusion) {
+        return this.excludedPlayerIds.add(exclusion);
     }
 
-    public final boolean removeExclusion(IProtectionExclusion exclusion) {
-        return this.exclusions.remove(exclusion);
+    public final boolean removeExclusion(UUID exclusion) {
+        return this.excludedPlayerIds.remove(exclusion);
     }
 
     public final String getId() {
@@ -78,8 +73,8 @@ public final class ProtectionRegion {
         return this.area;
     }
 
-    public final Set<IProtectionExclusion> getExclusions() {
-        return Collections.unmodifiableSet(this.exclusions);
+    public final Set<UUID> getExcludedPlayerIds() {
+        return Collections.unmodifiableSet(this.excludedPlayerIds);
     }
 
     public final Set<ProtectionFlag> getFlags() {

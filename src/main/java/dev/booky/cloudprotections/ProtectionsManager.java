@@ -3,12 +3,10 @@ package dev.booky.cloudprotections;
 
 import dev.booky.cloudcore.config.ConfigLoader;
 import dev.booky.cloudprotections.config.ProtectionAreaSerializer;
-import dev.booky.cloudprotections.config.ProtectionExclusionSerializer;
 import dev.booky.cloudprotections.config.ProtectionRegionSerializer;
 import dev.booky.cloudprotections.region.ProtectionFlag;
 import dev.booky.cloudprotections.region.ProtectionRegion;
 import dev.booky.cloudprotections.region.area.IProtectionArea;
-import dev.booky.cloudprotections.region.exclusions.IProtectionExclusion;
 import io.leangen.geantyref.TypeToken;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -57,8 +55,7 @@ public final class ProtectionsManager {
 
     private static final Consumer<TypeSerializerCollection.Builder> CONFIG_SERIALIZERS = builder -> builder
             .register(ProtectionRegion.class, ProtectionRegionSerializer.INSTANCE)
-            .register(IProtectionArea.class, ProtectionAreaSerializer.INSTANCE)
-            .register(IProtectionExclusion.class, ProtectionExclusionSerializer.INSTANCE);
+            .register(IProtectionArea.class, ProtectionAreaSerializer.INSTANCE);
     private static final TypeToken<List<ProtectionRegion>> REGIONS_TOKEN = new TypeToken<>() {};
 
     private final Plugin plugin;

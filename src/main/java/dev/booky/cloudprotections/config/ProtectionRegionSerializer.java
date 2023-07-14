@@ -4,7 +4,6 @@ package dev.booky.cloudprotections.config;
 import dev.booky.cloudprotections.region.ProtectionFlag;
 import dev.booky.cloudprotections.region.ProtectionRegion;
 import dev.booky.cloudprotections.region.area.IProtectionArea;
-import dev.booky.cloudprotections.region.exclusions.IProtectionExclusion;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
@@ -15,6 +14,7 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 public final class ProtectionRegionSerializer implements TypeSerializer<ProtectionRegion> {
 
@@ -33,7 +33,7 @@ public final class ProtectionRegionSerializer implements TypeSerializer<Protecti
         String id = node.node("id").getString(RandomStringUtils.randomAlphanumeric(8));
 
         ConfigurationNode exclusionsNode = node.node("exclusions");
-        List<IProtectionExclusion> exclusions = exclusionsNode.getList(IProtectionExclusion.class, List::of);
+        List<UUID> exclusions = exclusionsNode.getList(UUID.class, List::of);
 
         ConfigurationNode flagsNode = node.node("flags");
         List<ProtectionFlag> flags = flagsNode.getList(ProtectionFlag.class, List::of);
@@ -51,7 +51,7 @@ public final class ProtectionRegionSerializer implements TypeSerializer<Protecti
         node.set(obj.getArea());
         node.node("id").set(obj.getId());
 
-        node.node("exclusions").setList(IProtectionExclusion.class, List.copyOf(obj.getExclusions()));
+        node.node("exclusions").setList(UUID.class, List.copyOf(obj.getExcludedPlayerIds()));
         node.node("flags").setList(ProtectionFlag.class, List.copyOf(obj.getFlags()));
     }
 }
