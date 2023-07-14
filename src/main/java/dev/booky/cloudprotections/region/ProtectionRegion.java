@@ -15,6 +15,8 @@ public final class ProtectionRegion {
 
     private final String id;
     private final IProtectionArea area;
+    private final int priority;
+
     private final Set<UUID> excludedPlayerIds;
     private final Set<ProtectionFlag> flags;
 
@@ -30,9 +32,17 @@ public final class ProtectionRegion {
         this(id, area, Set.of(), flags);
     }
 
-    public ProtectionRegion(String id, IProtectionArea area, Set<UUID> excludedPlayerIds, Set<ProtectionFlag> flags) {
+    public ProtectionRegion(String id, IProtectionArea area,
+                            Set<UUID> excludedPlayerIds, Set<ProtectionFlag> flags) {
+        this(id, area, 0, excludedPlayerIds, flags);
+    }
+
+    public ProtectionRegion(String id, IProtectionArea area, int priority,
+                            Set<UUID> excludedPlayerIds, Set<ProtectionFlag> flags) {
         this.id = id;
         this.area = area;
+        this.priority = priority;
+
         this.excludedPlayerIds = new HashSet<>(excludedPlayerIds);
         this.flags = EnumSet.copyOf(flags);
     }
@@ -73,6 +83,10 @@ public final class ProtectionRegion {
         return this.area;
     }
 
+    public int getPriority() {
+        return this.priority;
+    }
+
     public final Set<UUID> getExcludedPlayerIds() {
         return Collections.unmodifiableSet(this.excludedPlayerIds);
     }
@@ -95,6 +109,6 @@ public final class ProtectionRegion {
 
     @Override
     public String toString() {
-        return "ProtectionRegion{id='" + this.id + '\'' + ", area=" + this.area + ", flags=" + this.flags + '}';
+        return "ProtectionRegion{id='" + this.id + '\'' + ", area=" + this.area + ", priority=" + this.priority + ", excludedPlayerIds=" + this.excludedPlayerIds + ", flags=" + this.flags + '}';
     }
 }

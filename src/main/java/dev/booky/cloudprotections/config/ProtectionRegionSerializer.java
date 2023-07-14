@@ -31,6 +31,7 @@ public final class ProtectionRegionSerializer implements TypeSerializer<Protecti
 
         IProtectionArea area = Objects.requireNonNull(node.get(IProtectionArea.class));
         String id = node.node("id").getString(RandomStringUtils.randomAlphanumeric(8));
+        int priority = node.node("priority").getInt();
 
         ConfigurationNode exclusionsNode = node.node("exclusions");
         List<UUID> exclusions = exclusionsNode.getList(UUID.class, List::of);
@@ -38,7 +39,7 @@ public final class ProtectionRegionSerializer implements TypeSerializer<Protecti
         ConfigurationNode flagsNode = node.node("flags");
         List<ProtectionFlag> flags = flagsNode.getList(ProtectionFlag.class, List::of);
 
-        return new ProtectionRegion(id, area, Set.copyOf(exclusions), Set.copyOf(flags));
+        return new ProtectionRegion(id, area, priority, Set.copyOf(exclusions), Set.copyOf(flags));
     }
 
     @Override
@@ -50,6 +51,7 @@ public final class ProtectionRegionSerializer implements TypeSerializer<Protecti
 
         node.set(obj.getArea());
         node.node("id").set(obj.getId());
+        node.node("priority").set(obj.getPriority());
 
         node.node("exclusions").setList(UUID.class, List.copyOf(obj.getExcludedPlayerIds()));
         node.node("flags").setList(ProtectionFlag.class, List.copyOf(obj.getFlags()));

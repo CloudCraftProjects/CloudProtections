@@ -20,15 +20,16 @@ import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.serialize.TypeSerializerCollection;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public final class ProtectionsManager {
 
@@ -60,7 +61,7 @@ public final class ProtectionsManager {
 
     private final Plugin plugin;
     private final Path regionsPath;
-    private Map<String, ProtectionRegion> regions = Map.of();
+    private final Map<String, ProtectionRegion> regions = new LinkedHashMap<>();
 
     public ProtectionsManager(Plugin plugin) {
         this.plugin = plugin;
@@ -68,8 +69,9 @@ public final class ProtectionsManager {
     }
 
     public void reloadRegions() {
-        this.regions = ConfigLoader.loadObject(this.regionsPath, REGIONS_TOKEN, List::of, CONFIG_SERIALIZERS)
-                .stream().collect(Collectors.toUnmodifiableMap(ProtectionRegion::getId, Function.identity()));
+        List<ProtectionRegion> regions = ConfigLoader.loadObject(this.regionsPath,
+                REGIONS_TOKEN, List::of, CONFIG_SERIALIZERS);
+        this.replaceRegions(regions);
     }
 
     public void saveRegions() {
@@ -80,9 +82,19 @@ public final class ProtectionsManager {
         Map<String, ProtectionRegion> mutRegions = new HashMap<>(this.regions);
         consumer.accept(mutRegions);
 
-        if (!this.regions.equals(mutRegions)) {
-            this.regions = mutRegions;
-            this.saveRegions();
+        this.replaceRegions(mutRegions.values());
+        this.saveRegions();
+    }
+
+    private void replaceRegions(Collection<ProtectionRegion> regions) {
+        List<ProtectionRegion> regionList = new ArrayList<>(regions);
+        regionList.sort(Comparator.comparingInt(ProtectionRegion::getPriority).reversed());
+
+        synchronized (this.regions) {
+            this.regions.clear();
+            for (ProtectionRegion region : regionList) {
+                this.regions.put(region.getId(), region);
+            }
         }
     }
 
@@ -96,11 +108,8 @@ public final class ProtectionsManager {
         }
 
         for (ProtectionRegion region : this.getRegions()) {
-            if (player != null && region.isExcluded(player)) {
-                continue;
-            }
             if (region.check(block, flag)) {
-                return true;
+                return player == null || !region.isExcluded(player);
             }
         }
         return false;
