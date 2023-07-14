@@ -16,6 +16,7 @@ import dev.jorel.commandapi.arguments.Argument;
 import dev.jorel.commandapi.arguments.ArgumentSuggestions;
 import dev.jorel.commandapi.arguments.CustomArgument;
 import dev.jorel.commandapi.arguments.DoubleArgument;
+import dev.jorel.commandapi.arguments.GreedyStringArgument;
 import dev.jorel.commandapi.arguments.ListArgument;
 import dev.jorel.commandapi.arguments.ListArgumentBuilder;
 import dev.jorel.commandapi.arguments.LiteralArgument;
@@ -49,6 +50,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -157,7 +159,20 @@ public final class ProtectionsCommand {
                                                 .then(flagsListArg.apply(flagRemoveFilter)
                                                         .executesNative(this::removeRegionFlag)))
                                         .then(new LiteralArgument("list")
-                                                .executesNative(this::listRegionFlags)))))
+                                                .executesNative(this::listRegionFlags)))
+                                .then(new LiteralArgument("exclusions")
+                                        .withPermission("cloudprotections.command.exclusions")
+                                        .executesNative(this::listRegionExclusions)
+                                        .then(new LiteralArgument("add")
+                                                .withPermission("cloudprotections.command.exclusions.add")
+                                                .then(new GreedyStringArgument("uuid")
+                                                        .executesNative(this::addRegionExclusion)))
+                                        .then(new LiteralArgument("remove")
+                                                .withPermission("cloudprotections.command.exclusions.remove")
+                                                .then(new GreedyStringArgument("uuid")
+                                                        .executesNative(this::removeRegionExclusion)))
+                                        .then(new LiteralArgument("list")
+                                                .executesNative(this::listRegionExclusions)))))
                 .register();
     }
 
@@ -271,6 +286,7 @@ public final class ProtectionsCommand {
             }
             msg.append(flag.getName().colorIfAbsent(NamedTextColor.WHITE));
         }
+        this.manager.saveRegions();
 
         this.success(sender, msg.build());
     }
@@ -302,8 +318,9 @@ public final class ProtectionsCommand {
             }
             msg.append(flag.getName().colorIfAbsent(NamedTextColor.WHITE));
         }
+        this.manager.saveRegions();
 
-        success(sender, msg.build());
+        this.success(sender, msg.build());
     }
 
     private void listRegionFlags(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
@@ -330,7 +347,61 @@ public final class ProtectionsCommand {
             msg.append(flag.getName().colorIfAbsent(NamedTextColor.WHITE));
         }
 
-        success(sender, msg.build());
+        this.success(sender, msg.build());
+    }
+
+    private void addRegionExclusion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        UUID uuid = args.<String>getOptionalUnchecked("uuid").map(UUID::fromString).orElseThrow();
+
+        if (!region.addExclusion(uuid)) {
+            throw fail(Component.translatable("protections.command.exclusions.add.nothing-changed",
+                    Component.text(region.getId(), NamedTextColor.WHITE)));
+        }
+        this.manager.saveRegions();
+
+        this.success(sender, Component.translatable("protections.command.exclusions.add.success",
+                Component.text(region.getId(), NamedTextColor.WHITE),
+                Component.text(uuid.toString(), NamedTextColor.WHITE)));
+    }
+
+    private void removeRegionExclusion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        UUID uuid = args.<String>getOptionalUnchecked("uuid").map(UUID::fromString).orElseThrow();
+
+        if (!region.removeExclusion(uuid)) {
+            throw fail(Component.translatable("protections.command.exclusions.remove.nothing-changed",
+                    Component.text(region.getId(), NamedTextColor.WHITE)));
+        }
+        this.manager.saveRegions();
+
+        this.success(sender, Component.translatable("protections.command.exclusions.remove.success",
+                Component.text(region.getId(), NamedTextColor.WHITE),
+                Component.text(uuid.toString(), NamedTextColor.WHITE)));
+    }
+
+    private void listRegionExclusions(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
+        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        Set<UUID> exclusions = Set.copyOf(region.getExcludedPlayerIds());
+        if (exclusions.isEmpty()) {
+            throw this.fail(Component.translatable("protections.command.exclusions.list.none",
+                    Component.text(region.getId(), NamedTextColor.WHITE)));
+        }
+
+        ComponentBuilder<?, ?> msg = Component.translatable()
+                .key(exclusions.size() == 1
+                        ? "protections.command.exclusions.list.info.singular"
+                        : "protections.command.exclusions.list.info.plural")
+                .args(Component.text(exclusions.size(), NamedTextColor.WHITE),
+                        Component.text(region.getId(), NamedTextColor.WHITE));
+
+        for (UUID exclusion : exclusions) {
+            msg.appendNewline();
+            msg.append(Component.text(" - "));
+            msg.append(Component.text(exclusion.toString(), NamedTextColor.WHITE));
+        }
+
+        this.success(sender, msg.build());
     }
 
     private enum AreaType {
