@@ -21,13 +21,13 @@ public class ProtectionsMain extends JavaPlugin {
 
         this.i18n = new TranslationLoader(this);
         this.i18n.load();
+
+        Bukkit.getServicesManager().register(ProtectionsManager.class, this.manager, this, ServicePriority.Normal);
     }
 
     @Override
     public void onEnable() {
         this.manager.reloadRegions();
-
-        Bukkit.getServicesManager().register(ProtectionsManager.class, this.manager, this, ServicePriority.Normal);
 
         Bukkit.getPluginManager().registerEvents(new ProtectionListener(this.manager), this);
 
