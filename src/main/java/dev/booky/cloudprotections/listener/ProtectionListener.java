@@ -6,6 +6,7 @@ import dev.booky.cloudprotections.ProtectionsManager;
 import dev.booky.cloudprotections.region.ProtectionFlag;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -23,6 +24,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
@@ -196,19 +198,33 @@ public final class ProtectionListener implements Listener {
         return true;
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent event) {
         this.onPiston(event.getBlock(), event.getBlocks());
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onPistonRetract(BlockPistonRetractEvent event) {
         this.onPiston(event.getBlock(), event.getBlocks());
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onPathfind(EntityPathfindEvent event) {
         if (this.manager.isProtected(event.getLoc(), ProtectionFlag.MOB_AI, null)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPathfind(EntityTargetEvent event) {
+        Entity target = event.getTarget();
+        if (target == null) {
+            // why can this even be null?
+            return;
+        }
+
+        Player player = target instanceof Player ? (Player) target : null;
+        if (this.manager.isProtected(target.getLocation(), ProtectionFlag.MOB_AI, player)) {
             event.setCancelled(true);
         }
     }
