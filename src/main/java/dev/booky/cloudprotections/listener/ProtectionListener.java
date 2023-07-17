@@ -32,6 +32,7 @@ import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EntityEquipment;
 
 public final class ProtectionListener implements Listener {
 
@@ -123,7 +124,18 @@ public final class ProtectionListener implements Listener {
                 // try to not handle block places, because handling them here seems more "buggy"
                 if (!event.getMaterial().isBlock()) {
                     event.setUseInteractedBlock(Event.Result.DENY);
-                } else if (blockType.isInteractable() && !event.getPlayer().isSneaking()) {
+                    return;
+                }
+                if (!blockType.isInteractable()) {
+                    return;
+                }
+                if (!event.getPlayer().isSneaking()) {
+                    event.setUseInteractedBlock(Event.Result.DENY);
+                    return;
+                }
+                EntityEquipment equipment = event.getPlayer().getEquipment();
+                if (equipment.getItemInMainHand().getType().isAir()
+                        && equipment.getItemInOffHand().getType().isAir()) {
                     event.setUseInteractedBlock(Event.Result.DENY);
                 }
             }
