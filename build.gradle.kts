@@ -15,17 +15,14 @@ val plugin: Configuration by configurations.creating {
 }
 
 repositories {
-    // TODO: find an actual repository for this
-    mavenLocal {
-        content {
-            includeGroup("dev.booky")
-        }
+    maven("https://maven.pkg.github.com/CloudCraftProjects/*/") {
+        name = "github"
+        credentials(PasswordCredentials::class.java)
     }
-
     maven("https://repo.papermc.io/repository/maven-public/")
 }
 
-val cloudCoreVersion = "1.0.0"
+val cloudCoreVersion = "1.0.1-SNAPSHOT"
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
@@ -42,7 +39,10 @@ dependencies {
 
 java {
     withSourcesJar()
-    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+    toolchain{
+        languageVersion.set(JavaLanguageVersion.of(17))
+        vendor.set(JvmVendorSpec.ADOPTIUM)
+    }
 }
 
 publishing {
@@ -67,7 +67,7 @@ tasks {
     }
 
     shadowJar {
-        relocate("org.bstats", "dev.booky.cloudprotections.bstats")
+        relocate("org.bstats", "${project.group}.cloudprotections.bstats")
     }
 
     assemble {
