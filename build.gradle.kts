@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.booky"
-version = "1.0.1"
+version = "1.0.2-SNAPSHOT"
 
 val plugin: Configuration by configurations.creating {
     isTransitive = false
@@ -49,6 +49,10 @@ publishing {
     publications.create<MavenPublication>("maven") {
         artifactId = project.name.lowercase()
         from(components["java"])
+    }
+    repositories.maven("https://maven.pkg.github.com/CloudCraftProjects/CloudProtections") {
+        name = "github"
+        credentials(PasswordCredentials::class.java)
     }
 }
 

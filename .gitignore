@@ -453,3 +453,4 @@ run/
 .idea/
 next-env.d.ts
 *.iml
+.secrets
