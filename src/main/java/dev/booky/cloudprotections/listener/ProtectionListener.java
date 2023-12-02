@@ -197,9 +197,9 @@ public final class ProtectionListener implements Listener {
         }
     }
 
-    private boolean onPiston(Block piston, Iterable<Block> moved) {
+    private boolean checkPiston(Block piston, Iterable<Block> moved) {
         if (this.manager.isProtected(piston, ProtectionFlag.REDSTONE, null)) {
-            return true;
+            return false;
         }
 
         for (Block block : moved) {
@@ -207,17 +207,24 @@ public final class ProtectionListener implements Listener {
                 return false;
             }
         }
-        return true;
+
+        return true; // allowed
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent event) {
-        this.onPiston(event.getBlock(), event.getBlocks());
+        boolean allowed = this.checkPiston(event.getBlock(), event.getBlocks());
+        if (!allowed) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onPistonRetract(BlockPistonRetractEvent event) {
-        this.onPiston(event.getBlock(), event.getBlocks());
+        boolean allowed = this.checkPiston(event.getBlock(), event.getBlocks());
+        if (!allowed) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
