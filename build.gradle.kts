@@ -69,4 +69,10 @@ tasks {
     assemble {
         dependsOn(shadowJar)
     }
+
+    withType<Jar> {
+        manifest.attributes(
+            "paperweight-mappings-namespace" to "mojang"
+        )
+    }
 }
