@@ -25,7 +25,7 @@ jobs:
           cache: gradle
 
       - name: Build plugin
-        run: ./gradlew build --no-daemon -PhorreoUsername=${{ secrets.PUBLISH_USERNAME }} -PhorreoPassword=${{ secrets.PUBLISH_PASSWORD }}
+        run: ./gradlew build --no-daemon
 
       - name: Upload plugin jars
         uses: actions/upload-artifact@v4
