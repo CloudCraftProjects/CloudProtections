@@ -15,16 +15,7 @@ val plugin: Configuration by configurations.creating {
 }
 
 repositories {
-    maven("https://maven.pkg.github.com/CloudCraftProjects/*/") {
-        name = "github"
-        credentials(PasswordCredentials::class.java)
-    }
-    maven("https://repo.papermc.io/repository/maven-public/")
-    maven("https://s01.oss.sonatype.org/content/repositories/snapshots/") {
-        content {
-            includeGroup("net.kyori")
-        }
-    }
+    maven("https://repo.cloudcraftmc.de/public/")
 }
 
 dependencies {
@@ -51,8 +42,8 @@ publishing {
         artifactId = project.name.lowercase()
         from(components["java"])
     }
-    repositories.maven("https://maven.pkg.github.com/CloudCraftProjects/CloudProtections") {
-        name = "github"
+    repositories.maven("https://repo.cloudcraftmc.de/releases") {
+        name = "horreo"
         credentials(PasswordCredentials::class.java)
     }
 }
