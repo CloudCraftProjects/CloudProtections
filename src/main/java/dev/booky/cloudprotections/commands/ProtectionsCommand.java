@@ -245,7 +245,7 @@ public final class ProtectionsCommand {
 
         ComponentBuilder<?, ?> msg = Component.translatable()
                 .key("protections.command.list.header")
-                .args(Component.text(regions.size(), NamedTextColor.WHITE));
+                .arguments(Component.text(regions.size(), NamedTextColor.WHITE));
 
         for (ProtectionRegion region : regions) {
             AreaType areaType = AreaType.get(region.getArea());
@@ -280,7 +280,7 @@ public final class ProtectionsCommand {
                 .key(flags.size() == 1
                         ? "protections.command.flags.add.success.singular"
                         : "protections.command.flags.add.success.plural")
-                .args(Component.text(flags.size(), NamedTextColor.WHITE),
+                .arguments(Component.text(flags.size(), NamedTextColor.WHITE),
                         Component.text(region.getId(), NamedTextColor.WHITE));
 
         for (ProtectionFlag flag : flags) {
@@ -312,7 +312,7 @@ public final class ProtectionsCommand {
                 .key(flags.size() == 1
                         ? "protections.command.flags.remove.success.singular"
                         : "protections.command.flags.remove.success.plural")
-                .args(Component.text(flags.size(), NamedTextColor.WHITE),
+                .arguments(Component.text(flags.size(), NamedTextColor.WHITE),
                         Component.text(region.getId(), NamedTextColor.WHITE));
 
         for (ProtectionFlag flag : flags) {
@@ -342,7 +342,7 @@ public final class ProtectionsCommand {
                 .key(flags.size() == 1
                         ? "protections.command.flags.list.info.singular"
                         : "protections.command.flags.list.info.plural")
-                .args(Component.text(flags.size(), NamedTextColor.WHITE),
+                .arguments(Component.text(flags.size(), NamedTextColor.WHITE),
                         Component.text(region.getId(), NamedTextColor.WHITE));
 
         for (ProtectionFlag flag : flags) {
@@ -399,7 +399,7 @@ public final class ProtectionsCommand {
                 .key(exclusions.size() == 1
                         ? "protections.command.exclusions.list.info.singular"
                         : "protections.command.exclusions.list.info.plural")
-                .args(Component.text(exclusions.size(), NamedTextColor.WHITE),
+                .arguments(Component.text(exclusions.size(), NamedTextColor.WHITE),
                         Component.text(region.getId(), NamedTextColor.WHITE));
 
         for (UUID exclusion : exclusions) {

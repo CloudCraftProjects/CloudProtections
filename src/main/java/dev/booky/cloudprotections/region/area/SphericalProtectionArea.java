@@ -73,11 +73,9 @@ public final class SphericalProtectionArea implements IProtectionArea {
     @Override
     public int hashCode() {
         int result;
-        long temp;
         result = this.world.hashCode();
         result = 31 * result + this.centerBlock.hashCode();
-        temp = Double.doubleToLongBits(this.radius);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        result = 31 * result + Double.hashCode(this.radius);
         return result;
     }
 }

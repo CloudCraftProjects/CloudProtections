@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.booky"
-version = "1.0.3-SNAPSHOT"
+version = "1.0.4-SNAPSHOT"
 
 val plugin: Configuration by configurations.creating {
     isTransitive = false
@@ -20,6 +20,11 @@ repositories {
         credentials(PasswordCredentials::class.java)
     }
     maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://s01.oss.sonatype.org/content/repositories/snapshots/") {
+        content {
+            includeGroup("net.kyori")
+        }
+    }
 }
 
 dependencies {
@@ -36,8 +41,8 @@ dependencies {
 java {
     withSourcesJar()
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-        vendor.set(JvmVendorSpec.ADOPTIUM)
+        languageVersion = JavaLanguageVersion.of(21)
+        vendor = JvmVendorSpec.ADOPTIUM
     }
 }
 
@@ -54,11 +59,10 @@ publishing {
 
 bukkit {
     main = "$group.cloudprotections.ProtectionsMain"
-    apiVersion = "1.20"
+    apiVersion = "1.20.5"
     authors = listOf("booky10")
     website = "https://github.com/CloudCraftProjects/CloudProtections"
     depend = listOf("CloudCore", "CommandAPI")
-    load = net.minecrell.pluginyml.bukkit.BukkitPluginDescription.PluginLoadOrder.POSTWORLD
 }
 
 tasks {

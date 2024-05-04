@@ -82,8 +82,8 @@ public final class ProtectionListener implements Listener {
         if (this.manager.isProtected(event.getEntity().getLocation(), ProtectionFlag.MOB_SPAWNING, null)) {
             switch (event.getSpawnReason()) {
                 case SPAWNER_EGG, BUILD_SNOWMAN, BUILD_IRONGOLEM, BUILD_WITHER, BREEDING,
-                        DISPENSE_EGG, INFECTION, CURED, SHOULDER_ENTITY, DROWNED, SHEARED,
-                        PIGLIN_ZOMBIFIED, FROZEN, METAMORPHOSIS, DUPLICATION, COMMAND, CUSTOM, DEFAULT -> { /**/ }
+                     DISPENSE_EGG, INFECTION, CURED, SHOULDER_ENTITY, DROWNED, SHEARED,
+                     PIGLIN_ZOMBIFIED, FROZEN, METAMORPHOSIS, DUPLICATION, COMMAND, CUSTOM, DEFAULT -> { /**/ }
                 default -> event.setCancelled(true);
             }
         }
@@ -124,9 +124,6 @@ public final class ProtectionListener implements Listener {
                 // try to not handle block places, because handling them here seems more "buggy"
                 if (!event.getMaterial().isBlock()) {
                     event.setUseInteractedBlock(Event.Result.DENY);
-                    return;
-                }
-                if (!blockType.isInteractable()) {
                     return;
                 }
                 if (!event.getPlayer().isSneaking()) {

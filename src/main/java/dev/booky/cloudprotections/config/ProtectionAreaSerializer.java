@@ -40,22 +40,14 @@ public final class ProtectionAreaSerializer implements TypeSerializer<IProtectio
 
     @Override
     public void serialize(Type type, @Nullable IProtectionArea obj, ConfigurationNode node) throws SerializationException {
-        if (obj == null) {
-            node.set(null);
-            return;
+        switch (obj) {
+            case null -> node.set(null);
+            case SphericalProtectionArea area -> {
+                node.node("center").set(area.getCenterBlock());
+                node.node("radius").set(area.getRadius());
+            }
+            case BoxProtectionArea area -> node.set(BlockBBox.class, area.getBox());
+            default -> throw new IllegalStateException("Unexpected area: " + obj);
         }
-
-        if (obj instanceof SphericalProtectionArea area) {
-            node.node("center").set(area.getCenterBlock());
-            node.node("radius").set(area.getRadius());
-            return;
-        }
-
-        if (obj instanceof BoxProtectionArea area) {
-            node.set(area.getBox());
-            return;
-        }
-
-        throw new UnsupportedOperationException("Unsupported protection area implementation: " + obj);
     }
 }
