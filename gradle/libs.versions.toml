@@ -6,10 +6,10 @@ shadow = "8.1.7"
 minecraft = "1.20.6"
 paperapi = "1.20.6-R0.1-SNAPSHOT"
 
-cloudcore = "1.0.3-SNAPSHOT"
+cloudcore = "1.1.0-SNAPSHOT"
 
 bstats = "3.0.2"
-commandapi = "9.4.0"
+commandapi = "9.5.0-SNAPSHOT"
 
 [plugins]
 pluginyml-bukkit = { id = "net.minecrell.plugin-yml.bukkit", version.ref = "pluginyml" }
@@ -22,4 +22,5 @@ paperapi = { module = "io.papermc.paper:paper-api", version.ref = "paperapi" }
 cloudcore = { module = "dev.booky:cloudcore", version.ref = "cloudcore" }
 
 bstats = { module = "org.bstats:bstats-bukkit", version.ref = "bstats" }
-commandapi-plugin = { module = "dev.jorel:commandapi-bukkit-plugin", version.ref = "commandapi" }
+commandapi-bukkit-core = { module = "dev.jorel:commandapi-bukkit-core", version.ref = "commandapi" }
+commandapi-bukkit-plugin = { module = "dev.jorel:commandapi-bukkit-plugin", version.ref = "commandapi" }

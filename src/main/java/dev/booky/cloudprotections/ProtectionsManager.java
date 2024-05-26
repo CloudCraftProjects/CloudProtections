@@ -1,7 +1,7 @@
 package dev.booky.cloudprotections;
 // Created by booky10 in CloudProtections (01:58 01.04.23)
 
-import dev.booky.cloudcore.config.ConfigLoader;
+import dev.booky.cloudcore.config.ConfigurateLoader;
 import dev.booky.cloudprotections.config.ProtectionAreaSerializer;
 import dev.booky.cloudprotections.config.ProtectionRegionSerializer;
 import dev.booky.cloudprotections.region.ProtectionFlag;
@@ -17,7 +17,6 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
-import org.spongepowered.configurate.serialize.TypeSerializerCollection;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -54,10 +53,13 @@ public final class ProtectionsManager {
             .append(Component.text("] ", NamedTextColor.GRAY))
             .build().compact();
 
-    private static final Consumer<TypeSerializerCollection.Builder> CONFIG_SERIALIZERS = builder -> builder
-            .register(ProtectionRegion.class, ProtectionRegionSerializer.INSTANCE)
-            .register(IProtectionArea.class, ProtectionAreaSerializer.INSTANCE);
     private static final TypeToken<List<ProtectionRegion>> REGIONS_TOKEN = new TypeToken<>() {};
+    private static final ConfigurateLoader<?, ?> CONFIG_LOADER = ConfigurateLoader.yamlLoader()
+            .withAllDefaultSerializers()
+            .withSerializers(builder -> builder
+                    .register(ProtectionRegion.class, ProtectionRegionSerializer.INSTANCE)
+                    .register(IProtectionArea.class, ProtectionAreaSerializer.INSTANCE))
+            .build();
 
     private final Plugin plugin;
     private final Path regionsPath;
@@ -69,13 +71,13 @@ public final class ProtectionsManager {
     }
 
     public void reloadRegions() {
-        List<ProtectionRegion> regions = ConfigLoader.loadObject(this.regionsPath,
-                REGIONS_TOKEN, List::of, CONFIG_SERIALIZERS);
+        List<ProtectionRegion> regions = CONFIG_LOADER.loadObject(
+                this.regionsPath, REGIONS_TOKEN, List::of);
         this.replaceRegions(regions);
     }
 
     public void saveRegions() {
-        ConfigLoader.saveObject(this.regionsPath, REGIONS_TOKEN, List.copyOf(this.regions.values()), CONFIG_SERIALIZERS);
+        CONFIG_LOADER.saveObject(this.regionsPath, List.copyOf(this.regions.values()), REGIONS_TOKEN);
     }
 
     public synchronized void updateRegions(Consumer<Map<String, ProtectionRegion>> consumer) {

@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.booky"
-version = "1.0.4-SNAPSHOT"
+version = "1.0.5-SNAPSHOT"
 
 val plugin: Configuration by configurations.creating {
     isTransitive = false
@@ -22,11 +22,12 @@ dependencies {
     compileOnly(libs.paperapi)
 
     compileOnlyApi(libs.cloudcore)
+    compileOnlyApi(libs.commandapi.bukkit.core)
     implementation(libs.bstats)
 
     // testserver dependency plugins
     plugin(variantOf(libs.cloudcore) { classifier("all") })
-    plugin(libs.commandapi.plugin)
+    plugin(libs.commandapi.bukkit.plugin)
 }
 
 java {
