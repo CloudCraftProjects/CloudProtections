@@ -51,3 +51,7 @@ can be done using `new ProtectionRegion`. Exclusions and region flags are modifi
 modifiable.
 
 </details>
+
+## License
+
+Licensed under GPL-3.0, see [LICENSE](./LICENSE) for further information.
