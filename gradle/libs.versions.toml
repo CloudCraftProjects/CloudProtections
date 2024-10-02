@@ -2,6 +2,7 @@
 pluginyml = "0.6.0"
 runtask = "2.3.1"
 shadow = "8.3.0"
+publishing = "0.7.4"
 
 minecraft = "1.21.1"
 paperapi = "1.21.1-R0.1-SNAPSHOT"
@@ -15,6 +16,7 @@ commandapi = "9.5.3"
 pluginyml-bukkit = { id = "net.minecrell.plugin-yml.bukkit", version.ref = "pluginyml" }
 runpaper = { id = "xyz.jpenilla.run-paper", version.ref = "runtask" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+publishing = { id = "me.modmuss50.mod-publish-plugin", version.ref = "publishing" }
 
 [libraries]
 paperapi = { module = "io.papermc.paper:paper-api", version.ref = "paperapi" }
