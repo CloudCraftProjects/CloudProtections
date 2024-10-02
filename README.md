@@ -39,7 +39,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("dev.booky:cloudprotections:1.0.5-SNAPSHOT")
+    compileOnly("dev.booky:cloudprotections:{VERSION}")
 }
 ```
 
