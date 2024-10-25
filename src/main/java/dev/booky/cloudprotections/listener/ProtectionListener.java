@@ -117,7 +117,9 @@ public final class ProtectionListener implements Listener {
                 }
 
                 Material blockType = event.getClickedBlock().getType();
-                if (blockType == Material.ENDER_CHEST) {
+                if (event.getMaterial().isAir()
+                        && (blockType == Material.ENDER_CHEST
+                        || blockType == Material.CRAFTING_TABLE)) {
                     return;
                 }
 
