@@ -25,12 +25,12 @@ dependencies {
     compileOnly(libs.paperapi)
 
     compileOnlyApi(libs.cloudcore)
-    compileOnlyApi(libs.commandapi.bukkit.core)
+    compileOnlyApi(libs.commandapi.paper.core)
     implementation(libs.bstats)
 
     // testserver dependency plugins
     plugin(variantOf(libs.cloudcore) { classifier("all") })
-    plugin(libs.commandapi.bukkit.plugin)
+    plugin(libs.commandapi.paper.plugin)
 }
 
 java {
@@ -47,7 +47,7 @@ publishing {
         from(components["java"])
     }
     repositories.maven("https://repo.cloudcraftmc.de/releases") {
-        name = "horreo"
+        name = "minceraft"
         credentials(PasswordCredentials::class.java)
     }
 }

@@ -9,7 +9,7 @@ import dev.booky.cloudprotections.region.area.BoxProtectionArea;
 import dev.booky.cloudprotections.region.area.IProtectionArea;
 import dev.booky.cloudprotections.region.area.SphericalProtectionArea;
 import dev.jorel.commandapi.CommandAPI;
-import dev.jorel.commandapi.CommandAPIBukkit;
+import dev.jorel.commandapi.CommandAPIPaper;
 import dev.jorel.commandapi.CommandTree;
 import dev.jorel.commandapi.SuggestionInfo;
 import dev.jorel.commandapi.arguments.Argument;
@@ -72,7 +72,7 @@ public final class ProtectionsCommand {
     }
 
     private WrapperCommandSyntaxException fail(Component message) {
-        return CommandAPIBukkit.failWithAdventureComponent(this.failMsg(message));
+        return CommandAPIPaper.failWithAdventureComponent(this.failMsg(message));
     }
 
     private void fail(CommandSender sender, Component message) {

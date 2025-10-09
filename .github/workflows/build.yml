@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: "!contains(github.event.head_commit.message, 'skip ci') && !contains(github.event.head_commit.message, 'ci skip')"
 
     steps:
@@ -35,4 +35,4 @@ jobs:
           if-no-files-found: error
 
       - name: Publish to package registry
-        run: ./gradlew publish --no-daemon -PhorreoUsername=${{ secrets.PUBLISH_USERNAME }} -PhorreoPassword=${{ secrets.PUBLISH_PASSWORD }}
+        run: ./gradlew publish --no-daemon -PminceraftUsername=${{ secrets.PUBLISH_USERNAME }} -PminceraftPassword=${{ secrets.PUBLISH_PASSWORD }}
