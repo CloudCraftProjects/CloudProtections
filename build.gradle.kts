@@ -55,6 +55,7 @@ publishing {
 bukkit {
     main = "$group.cloudprotections.ProtectionsMain"
     apiVersion = "1.20.5"
+    foliaSupported = true
     authors = listOf("booky10")
     website = "https://github.com/CloudCraftProjects/CloudProtections"
     depend = listOf("CloudCore", "CommandAPI")
@@ -110,7 +111,7 @@ configure<ModPublishExtension> {
 
         version = "${project.version}"
         displayName = "${rootProject.name} v${project.version}"
-        modLoaders.add("paper")
+        modLoaders.addAll("paper", "folia")
 
         projectId = "IeP9peMi"
         minecraftVersionRange {

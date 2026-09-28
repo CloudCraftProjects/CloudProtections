@@ -44,6 +44,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.util.Vector;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -54,7 +55,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public final class ProtectionsCommand {
@@ -185,56 +185,96 @@ public final class ProtectionsCommand {
 
     private void createRegion(NativeProxyCommandSender sender, CommandArguments args, AreaType areaType) throws WrapperCommandSyntaxException {
         String id = Objects.requireNonNull(args.getUnchecked("id"));
-        if (this.manager.getRegion(id) != null) {
-            throw this.fail(Component.translatable("protections.command.create.already-exists", Component.text(id, NamedTextColor.WHITE)));
-        }
 
         IProtectionArea area = areaType.create(sender, args);
         ProtectionRegion region = new ProtectionRegion(id, area, EnumSet.allOf(ProtectionFlag.class));
 
-        this.manager.updateRegions(regions -> regions.putIfAbsent(id, region));
+        boolean[] created = new boolean[1];
+        this.manager.updateRegions(regions -> {
+            if (!regions.containsKey(id)) {
+                regions.put(id, region);
+                created[0] = true;
+            }
+        });
+
+        if (!created[0]) {
+            throw this.fail(Component.translatable("protections.command.create.already-exists", Component.text(id, NamedTextColor.WHITE)));
+        }
+
         this.success(sender, Component.translatable("protections.command.create.success", Component.text(id, NamedTextColor.WHITE)));
     }
 
     private void deleteRegion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
         ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        String regionId = region.getId();
         throw this.fail(Component.translatable("protections.command.delete.confirmation-required",
-                Component.text(region.getId(), NamedTextColor.WHITE),
+                Component.text(regionId, NamedTextColor.WHITE),
                 Component.translatable("protections.command.delete.confirmation-button")
                         .clickEvent(ClickEvent.callback(clicker -> {
                             if (clicker != sender.getCaller()) {
                                 return;
                             }
 
-                            if (this.manager.getRegion(region.getId()) != region) {
+                            boolean[] deleted = new boolean[1];
+                            this.manager.updateRegions(regions -> {
+                                if (regions.get(regionId) == region) {
+                                    regions.remove(regionId);
+                                    deleted[0] = true;
+                                }
+                            });
+
+                            if (!deleted[0]) {
                                 // can't throw exceptions here
                                 this.fail(sender, Component.translatable("protections.command.delete.invalid-region",
-                                        Component.text(region.getId(), NamedTextColor.WHITE)));
+                                        Component.text(regionId, NamedTextColor.WHITE)));
                                 return;
                             }
 
-                            this.manager.updateRegions(regions -> regions.remove(region.getId(), region));
                             this.success(sender, Component.translatable("protections.command.delete.success",
-                                    Component.text(region.getId(), NamedTextColor.WHITE)));
+                                    Component.text(regionId, NamedTextColor.WHITE)));
                         }))));
     }
 
     private void renameRegion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
         ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        String regionId = region.getId();
         String newId = Objects.requireNonNull(args.getUnchecked("id"));
-        ProtectionRegion newRegion = new ProtectionRegion(newId, region.getArea(), region.getFlags());
 
-        if (this.manager.getRegion(newId) != null) {
+        if (regionId.equals(newId)) {
+            this.success(sender, Component.translatable("protections.command.rename.success",
+                    Component.text(regionId, NamedTextColor.WHITE), Component.text(newId, NamedTextColor.WHITE)));
+            return;
+        }
+
+        boolean[] alreadyExists = new boolean[1];
+        boolean[] renamed = new boolean[1];
+        this.manager.updateRegions(regions -> {
+            ProtectionRegion current = regions.get(regionId);
+            if (current == null) {
+                return;
+            }
+            if (regions.containsKey(newId)) {
+                alreadyExists[0] = true;
+                return;
+            }
+
+            regions.put(newId, new ProtectionRegion(newId, current.getArea(), current.getPriority(),
+                    current.getExcludedPlayerIds(), current.getFlags()));
+            regions.remove(regionId);
+            renamed[0] = true;
+        });
+
+        if (alreadyExists[0]) {
             throw this.fail(Component.translatable("protections.command.rename.already-exists",
                     Component.text(newId, NamedTextColor.WHITE)));
         }
+        if (!renamed[0]) {
+            throw this.fail(Component.translatable("protections.command.invalid-region",
+                    Component.text(regionId, NamedTextColor.WHITE)));
+        }
 
-        this.manager.updateRegions(regions -> {
-            regions.remove(region.getId());
-            regions.put(newId, newRegion);
-        });
         this.success(sender, Component.translatable("protections.command.rename.success",
-                Component.text(region.getId(), NamedTextColor.WHITE), Component.text(newId, NamedTextColor.WHITE)));
+                Component.text(regionId, NamedTextColor.WHITE), Component.text(newId, NamedTextColor.WHITE)));
     }
 
     private void listRegions(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
@@ -267,25 +307,35 @@ public final class ProtectionsCommand {
     }
 
     private void addRegionFlag(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
-        List<ProtectionFlag> flags = Objects.requireNonNull(args.getUnchecked("flags"));
-        flags.removeIf(region::hasFlag);
+        String regionId = Objects.requireNonNull(args.<ProtectionRegion>getUnchecked("region")).getId();
+        List<ProtectionFlag> flags = List.copyOf(Objects.requireNonNull(args.getUnchecked("flags")));
 
-        if (flags.isEmpty()) {
+        List<ProtectionFlag> addedFlags = new ArrayList<>(flags.size());
+        this.manager.updateRegions(regions -> {
+            ProtectionRegion region = regions.get(regionId);
+            if (region == null) {
+                return;
+            }
+            for (ProtectionFlag flag : flags) {
+                if (region.addFlag(flag)) {
+                    addedFlags.add(flag);
+                }
+            }
+        });
+
+        if (addedFlags.isEmpty()) {
             throw fail(Component.translatable("protections.command.flags.add.nothing-changed",
-                    Component.text(region.getId(), NamedTextColor.WHITE)));
+                    Component.text(regionId, NamedTextColor.WHITE)));
         }
 
         ComponentBuilder<?, ?> msg = Component.translatable()
-                .key(flags.size() == 1
+                .key(addedFlags.size() == 1
                         ? "protections.command.flags.add.success.singular"
                         : "protections.command.flags.add.success.plural")
-                .arguments(Component.text(flags.size(), NamedTextColor.WHITE),
-                        Component.text(region.getId(), NamedTextColor.WHITE));
+                .arguments(Component.text(addedFlags.size(), NamedTextColor.WHITE),
+                        Component.text(regionId, NamedTextColor.WHITE));
 
-        for (ProtectionFlag flag : flags) {
-            region.addFlag(flag);
-
+        for (ProtectionFlag flag : addedFlags) {
             if (msg.children().isEmpty()) {
                 msg.appendSpace();
             } else {
@@ -293,31 +343,40 @@ public final class ProtectionsCommand {
             }
             msg.append(flag.getName().colorIfAbsent(NamedTextColor.WHITE));
         }
-        this.manager.saveRegions();
 
         this.success(sender, msg.build());
     }
 
     private void removeRegionFlag(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
-        List<ProtectionFlag> flags = Objects.requireNonNull(args.getUnchecked("flags"));
-        flags.removeIf(Predicate.not(region::hasFlag));
+        String regionId = Objects.requireNonNull(args.<ProtectionRegion>getUnchecked("region")).getId();
+        List<ProtectionFlag> flags = List.copyOf(Objects.requireNonNull(args.getUnchecked("flags")));
 
-        if (flags.isEmpty()) {
+        List<ProtectionFlag> removedFlags = new ArrayList<>(flags.size());
+        this.manager.updateRegions(regions -> {
+            ProtectionRegion region = regions.get(regionId);
+            if (region == null) {
+                return;
+            }
+            for (ProtectionFlag flag : flags) {
+                if (region.removeFlag(flag)) {
+                    removedFlags.add(flag);
+                }
+            }
+        });
+
+        if (removedFlags.isEmpty()) {
             throw fail(Component.translatable("protections.command.flags.remove.nothing-changed",
-                    Component.text(region.getId(), NamedTextColor.WHITE)));
+                    Component.text(regionId, NamedTextColor.WHITE)));
         }
 
         ComponentBuilder<?, ?> msg = Component.translatable()
-                .key(flags.size() == 1
+                .key(removedFlags.size() == 1
                         ? "protections.command.flags.remove.success.singular"
                         : "protections.command.flags.remove.success.plural")
-                .arguments(Component.text(flags.size(), NamedTextColor.WHITE),
-                        Component.text(region.getId(), NamedTextColor.WHITE));
+                .arguments(Component.text(removedFlags.size(), NamedTextColor.WHITE),
+                        Component.text(regionId, NamedTextColor.WHITE));
 
-        for (ProtectionFlag flag : flags) {
-            region.removeFlag(flag);
-
+        for (ProtectionFlag flag : removedFlags) {
             if (msg.children().isEmpty()) {
                 msg.appendSpace();
             } else {
@@ -325,7 +384,6 @@ public final class ProtectionsCommand {
             }
             msg.append(flag.getName().colorIfAbsent(NamedTextColor.WHITE));
         }
-        this.manager.saveRegions();
 
         this.success(sender, msg.build());
     }
@@ -358,32 +416,46 @@ public final class ProtectionsCommand {
     }
 
     private void addRegionExclusion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        String regionId = Objects.requireNonNull(args.<ProtectionRegion>getUnchecked("region")).getId();
         UUID uuid = args.<String>getOptionalUnchecked("uuid").map(UUID::fromString).orElseThrow();
 
-        if (!region.addExclusion(uuid)) {
+        boolean[] changed = new boolean[1];
+        this.manager.updateRegions(regions -> {
+            ProtectionRegion region = regions.get(regionId);
+            if (region != null) {
+                changed[0] = region.addExclusion(uuid);
+            }
+        });
+
+        if (!changed[0]) {
             throw fail(Component.translatable("protections.command.exclusions.add.nothing-changed",
-                    Component.text(region.getId(), NamedTextColor.WHITE)));
+                    Component.text(regionId, NamedTextColor.WHITE)));
         }
-        this.manager.saveRegions();
 
         this.success(sender, Component.translatable("protections.command.exclusions.add.success",
-                Component.text(region.getId(), NamedTextColor.WHITE),
+                Component.text(regionId, NamedTextColor.WHITE),
                 Component.text(uuid.toString(), NamedTextColor.WHITE)));
     }
 
     private void removeRegionExclusion(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        String regionId = Objects.requireNonNull(args.<ProtectionRegion>getUnchecked("region")).getId();
         UUID uuid = args.<String>getOptionalUnchecked("uuid").map(UUID::fromString).orElseThrow();
 
-        if (!region.removeExclusion(uuid)) {
+        boolean[] changed = new boolean[1];
+        this.manager.updateRegions(regions -> {
+            ProtectionRegion region = regions.get(regionId);
+            if (region != null) {
+                changed[0] = region.removeExclusion(uuid);
+            }
+        });
+
+        if (!changed[0]) {
             throw fail(Component.translatable("protections.command.exclusions.remove.nothing-changed",
-                    Component.text(region.getId(), NamedTextColor.WHITE)));
+                    Component.text(regionId, NamedTextColor.WHITE)));
         }
-        this.manager.saveRegions();
 
         this.success(sender, Component.translatable("protections.command.exclusions.remove.success",
-                Component.text(region.getId(), NamedTextColor.WHITE),
+                Component.text(regionId, NamedTextColor.WHITE),
                 Component.text(uuid.toString(), NamedTextColor.WHITE)));
     }
 
@@ -419,24 +491,39 @@ public final class ProtectionsCommand {
     }
 
     private void updateRegionPriority(NativeProxyCommandSender sender, CommandArguments args) throws WrapperCommandSyntaxException {
-        ProtectionRegion region = Objects.requireNonNull(args.getUnchecked("region"));
+        String regionId = Objects.requireNonNull(args.<ProtectionRegion>getUnchecked("region")).getId();
         int newPriority = Objects.requireNonNull(args.<Integer>getUnchecked("priority"));
 
-        if (region.getPriority() == newPriority) {
+        boolean[] unchanged = new boolean[1];
+        boolean[] updated = new boolean[1];
+        this.manager.updateRegions(regions -> {
+            ProtectionRegion region = regions.get(regionId);
+            if (region == null) {
+                return;
+            }
+            if (region.getPriority() == newPriority) {
+                unchanged[0] = true;
+                return;
+            }
+
+            regions.put(regionId, new ProtectionRegion(regionId, region.getArea(),
+                    newPriority, region.getExcludedPlayerIds(), region.getFlags()));
+            updated[0] = true;
+        });
+
+        if (unchanged[0]) {
             throw this.fail(Component.translatable("protections.command.priority.already-set",
                     Component.text(newPriority, NamedTextColor.WHITE),
-                    Component.text(region.getId(), NamedTextColor.WHITE)));
+                    Component.text(regionId, NamedTextColor.WHITE)));
         }
-
-        this.manager.updateRegions(regions -> {
-            ProtectionRegion newRegion = new ProtectionRegion(region.getId(), region.getArea(),
-                    newPriority, region.getExcludedPlayerIds(), region.getFlags());
-            regions.put(region.getId(), newRegion);
-        });
+        if (!updated[0]) {
+            throw this.fail(Component.translatable("protections.command.invalid-region",
+                    Component.text(regionId, NamedTextColor.WHITE)));
+        }
 
         this.success(sender, Component.translatable("protections.command.priority.updated",
                 Component.text(newPriority, NamedTextColor.WHITE),
-                Component.text(region.getId(), NamedTextColor.WHITE)));
+                Component.text(regionId, NamedTextColor.WHITE)));
 
     }
 

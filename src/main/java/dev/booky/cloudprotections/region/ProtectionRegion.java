@@ -1,13 +1,13 @@
 package dev.booky.cloudprotections.region;
 // Created by booky10 in CraftAttack (21:22 13.11.22)
 
+import com.google.common.collect.ImmutableSet;
 import dev.booky.cloudprotections.region.area.IProtectionArea;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -17,8 +17,8 @@ public final class ProtectionRegion {
     private final IProtectionArea area;
     private final int priority;
 
-    private final Set<UUID> excludedPlayerIds;
-    private final Set<ProtectionFlag> flags;
+    private Set<UUID> excludedPlayerIds;
+    private Set<ProtectionFlag> flags;
 
     public ProtectionRegion(String id, IProtectionArea area) {
         this(id, area, EnumSet.allOf(ProtectionFlag.class));
@@ -43,8 +43,10 @@ public final class ProtectionRegion {
         this.area = area;
         this.priority = priority;
 
-        this.excludedPlayerIds = new HashSet<>(excludedPlayerIds);
-        this.flags = EnumSet.copyOf(flags);
+        this.excludedPlayerIds = ImmutableSet.copyOf(excludedPlayerIds);
+        this.flags = Collections.unmodifiableSet(flags.isEmpty()
+                ? EnumSet.noneOf(ProtectionFlag.class)
+                : EnumSet.copyOf(flags));
     }
 
     public final boolean check(Block block, ProtectionFlag flag) {
@@ -56,23 +58,62 @@ public final class ProtectionRegion {
     }
 
     public final boolean addFlag(ProtectionFlag flag) {
-        return this.flags.add(flag);
+        synchronized (this) {
+            if (this.flags.contains(flag)) {
+                return false;
+            }
+            EnumSet<ProtectionFlag> flags = this.flags.isEmpty()
+                    ? EnumSet.noneOf(ProtectionFlag.class)
+                    : EnumSet.copyOf(this.flags);
+            flags.add(flag);
+            this.flags = Collections.unmodifiableSet(flags);
+            return true;
+        }
     }
 
     public final boolean removeFlag(ProtectionFlag flag) {
-        return this.flags.remove(flag);
+        synchronized (this) {
+            if (!this.flags.contains(flag)) {
+                return false;
+            }
+            EnumSet<ProtectionFlag> flags = EnumSet.copyOf(this.flags);
+            flags.remove(flag);
+            this.flags = Collections.unmodifiableSet(flags);
+            return true;
+        }
     }
 
     public final boolean hasFlag(ProtectionFlag flag) {
         return this.flags.contains(flag);
     }
 
-    public final boolean addExclusion(UUID exclusion) {
-        return this.excludedPlayerIds.add(exclusion);
+    public final synchronized boolean addExclusion(UUID exclusion) {
+        synchronized (this) {
+            if (this.excludedPlayerIds.contains(exclusion)) {
+                return false;
+            }
+            ImmutableSet.Builder<UUID> bob = ImmutableSet.builderWithExpectedSize(this.excludedPlayerIds.size() + 1);
+            bob.addAll(this.excludedPlayerIds);
+            bob.add(exclusion);
+            this.excludedPlayerIds = bob.build();
+            return true;
+        }
     }
 
-    public final boolean removeExclusion(UUID exclusion) {
-        return this.excludedPlayerIds.remove(exclusion);
+    public final synchronized boolean removeExclusion(UUID exclusion) {
+        synchronized (this) {
+            if (!this.excludedPlayerIds.contains(exclusion)) {
+                return false;
+            }
+            ImmutableSet.Builder<UUID> bob = ImmutableSet.builderWithExpectedSize(this.excludedPlayerIds.size() - 1);
+            for (UUID excludedPlayerId : this.excludedPlayerIds) {
+                if (!exclusion.equals(excludedPlayerId)) {
+                    bob.add(excludedPlayerId);
+                }
+            }
+            this.excludedPlayerIds = bob.build();
+            return true;
+        }
     }
 
     public final String getId() {
@@ -88,11 +129,11 @@ public final class ProtectionRegion {
     }
 
     public final Set<UUID> getExcludedPlayerIds() {
-        return Collections.unmodifiableSet(this.excludedPlayerIds);
+        return this.excludedPlayerIds;
     }
 
     public final Set<ProtectionFlag> getFlags() {
-        return Collections.unmodifiableSet(this.flags);
+        return this.flags;
     }
 
     @Override
